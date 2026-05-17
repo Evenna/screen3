@@ -1,0 +1,10 @@
+Open office scene models downloaded from Poly Pizza model pages.
+
+All selected pages showed Public Domain (CC0) at download time.
+- desk.glb: Desk by Quaternius, https://poly.pizza/m/V86Go2rlnq
+- office-chair.glb: Office Chair by Quaternius, https://poly.pizza/m/UfKvrZBK6C
+- computer.glb: Computer by Quaternius, https://poly.pizza/m/emxvTSMKnt
+- keyboard.glb: Computer Keyboard by Kenney, https://poly.pizza/m/vsqTUPFSw6
+- mug.glb: Mug by MilkAndBanana, https://poly.pizza/m/54cOZNS04L
+- business-man.glb: Business Man by Quaternius, https://poly.pizza/m/JFrLIKqvCH
+- computer-screen.glb: Computer Screen by Kenney, https://poly.pizza/m/V5Qo141OcB

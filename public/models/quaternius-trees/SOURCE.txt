@@ -1,0 +1,4 @@
+Quaternius Textured LowPoly Trees
+Source: https://quaternius.itch.io/textured-lowpoly-trees
+License: Creative Commons Zero v1.0 Universal (CC0)
+Selected OBJ tree models extracted from the public Google Drive folder linked on the source page.

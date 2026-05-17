@@ -1,0 +1,22 @@
+Quaternius furniture models downloaded from Poly Pizza.
+Source bundle: https://poly.pizza/bundle/Furniture-Pack-pgvx8Zkq8v
+Individual models used:
+- Sofa: https://poly.pizza/m/X5kQPKzAWp
+- Bed King: https://poly.pizza/m/3kiLmRcb1o
+- Night Stand: https://poly.pizza/m/7cobkfclNv
+- Table Round Small: https://poly.pizza/m/57W671WvS2
+- Sofa Small: https://poly.pizza/m/vRMLQC5Dfg
+- Small Table: https://poly.pizza/m/rAEBvfb1FT
+- Shelf Large: https://poly.pizza/m/3FmjkLClVE
+- Bookcase with Books: https://poly.pizza/m/tACDGJ4CGW
+- Lamp Round Floor: https://poly.pizza/m/8LiDIfXVLi
+- Drawer: https://poly.pizza/m/T4uDbyP90C
+- Humanoid Robot by Polygonal Mind: https://poly.pizza/m/ejDr8lRglP
+License: CC0 1.0 / Public Domain.
+
+Additional attributed model:
+- Robot vacuum by Poly by Google: https://poly.pizza/m/dQj7UZT-1w0
+License: Creative Commons Attribution.
+
+User-provided local model:
+- Human lying pose: /Users/bytedance/Downloads/human+lying+pose+3d+model
