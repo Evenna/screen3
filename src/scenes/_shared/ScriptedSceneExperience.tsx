@@ -8,7 +8,7 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import '../../App.css'
 
 export type Vec3 = [number, number, number]
-export type EnvironmentKind = 'kitchen' | 'living' | 'study' | 'balcony' | 'city-link' | 'choice-room'
+export type EnvironmentKind = 'kitchen' | 'living' | 'study' | 'balcony' | 'city-link' | 'choice-room' | 'meeting-room'
 export type PoseKind = 'standing-phone' | 'seated-desk' | 'seated-sofa' | 'standing-child' | 'quiet-standing'
 
 export type SceneDialogue = {
@@ -73,6 +73,9 @@ const ASSETS = {
   closet: `${POLY}closet.glb`,
   bookcase: `${POLY}bookcase-with-books.glb`,
   door: `${POLY}door.glb`,
+  meetingTable: `${POLY}meeting-table.glb`,
+  projectorScreen: `${POLY}projector-screen.glb`,
+  wallScreen: `${POLY}computer-screen-kenney.glb`,
   sofa: '/models/quaternius-furniture/sofa.glb',
   sofaSmall: '/models/quaternius-furniture/sofa-small.glb',
   table: '/models/quaternius-furniture/round-table-small.glb',
@@ -174,6 +177,18 @@ function Environment({ kind }: { kind: EnvironmentKind }) {
   if (kind === 'study') return <group><RoomShell /><Model src={ASSETS.desk} position={[0.15, 0.55, 0.02]} scale={1.55} opacity={0.42} lineOpacity={0.32} /><Model src={ASSETS.chair} position={[0.0, 0.16, 0.62]} rotation={[0, Math.PI, 0]} scale={0.96} opacity={0.42} lineOpacity={0.32} /><Model src={ASSETS.computer} position={[0.22, 1.05, -0.42]} scale={0.55} opacity={0.48} lineOpacity={0.34} edge={ACTIVE_BLUE} /><Model src={ASSETS.keyboard} position={[0.02, 0.96, 0.02]} scale={0.36} opacity={0.42} lineOpacity={0.28} /><Model src={ASSETS.bookcase} position={[-1.65, 0, -1.1]} scale={1.25} opacity={0.28} lineOpacity={0.24} edge={SOFT_EDGE} /></group>
   if (kind === 'city-link') return <group><RoomShell /><LineBox position={[0, 1.7, -2.18]} scale={[3.6, 1.05, 0.035]} color="#071421" edge={MUTED_EDGE} opacity={0.22} emissive={ACTIVE_BLUE} emissiveIntensity={0.02} /><Model src={ASSETS.desk} position={[-1.0, 0.46, 0.24]} rotation={[0, 0.24, 0]} scale={1.25} opacity={0.36} lineOpacity={0.28} /><Model src={ASSETS.chair} position={[0.85, 0.16, 0.12]} rotation={[0, -0.7, 0]} scale={0.86} opacity={0.36} lineOpacity={0.28} /><Model src={ASSETS.lamp} position={[1.72, 0, -0.58]} scale={1.0} opacity={0.32} lineOpacity={0.24} /></group>
   if (kind === 'balcony') return <group><RoomShell windowSide="back" /><Model src={ASSETS.bedDouble} position={[-1.38, 0.12, 0.08]} rotation={[0, 0.22, 0]} scale={1.55} opacity={0.38} lineOpacity={0.3} /><Model src={ASSETS.nightStand} position={[-2.26, 0.2, -0.82]} scale={0.64} opacity={0.34} lineOpacity={0.26} /><Model src={ASSETS.closet} position={[1.95, 0, -1.08]} rotation={[0, -0.16, 0]} scale={1.22} opacity={0.3} lineOpacity={0.22} edge={SOFT_EDGE} /><LineBox position={[0.55, 1.52, -2.26]} scale={[1.9, 1.0, 0.035]} color="#071421" edge={MUTED_EDGE} opacity={0.28} emissive={ACTIVE_BLUE} emissiveIntensity={0.018} /></group>
+  if (kind === 'meeting-room') return <group>
+    <RoomShell />
+    <Model src={ASSETS.door} position={[-2.8, 0, -2.16]} rotation={[0, 0, 0]} scale={1.25} opacity={0.32} lineOpacity={0.24} edge={MUTED_EDGE} />
+    <Model src={ASSETS.projectorScreen} position={[0.1, 1.52, -2.12]} rotation={[0, 0, 0]} scale={1.82} opacity={0.42} lineOpacity={0.34} edge={ACTIVE_BLUE} />
+    <LineBox position={[0.1, 1.52, -2.06]} scale={[1.72, 0.86, 0.018]} color="#071421" edge={ACTIVE_BLUE} opacity={0.2} emissive={ACTIVE_BLUE} emissiveIntensity={0.06} />
+    {[-0.72, 0, 0.72].map((x) => <Model key={`table-${x}`} src={ASSETS.meetingTable} position={[x, 0.55, 0.2]} rotation={[0, Math.PI / 2, 0]} scale={1.0} opacity={0.44} lineOpacity={0.32} />)}
+    {[-1.35, -0.68, 0, 0.68, 1.35].map((x) => <Model key={`front-chair-${x}`} src={ASSETS.chair} position={[x, 0.16, 0.92]} rotation={[0, Math.PI, 0]} scale={0.58} opacity={0.42} lineOpacity={0.32} />)}
+    {[-1.35, -0.68, 0, 0.68, 1.35].map((x) => <Model key={`back-chair-${x}`} src={ASSETS.chair} position={[x, 0.16, -0.56]} rotation={[0, 0, 0]} scale={0.58} opacity={0.38} lineOpacity={0.28} />)}
+    <Model src={ASSETS.wallScreen} position={[1.92, 1.24, -1.68]} rotation={[0, -0.34, 0]} scale={0.72} opacity={0.38} lineOpacity={0.3} edge={ACTIVE_BLUE} />
+    <LineBox position={[-0.85, 2.42, -0.1]} scale={[1.24, 0.035, 0.22]} color="#dbe8ff" edge={SOFT_EDGE} opacity={0.28} emissive="#dbe8ff" emissiveIntensity={0.16} />
+    <LineBox position={[0.85, 2.42, -0.1]} scale={[1.24, 0.035, 0.22]} color="#dbe8ff" edge={SOFT_EDGE} opacity={0.28} emissive="#dbe8ff" emissiveIntensity={0.16} />
+  </group>
   return <group><RoomShell /><Model src={ASSETS.sofaSmall} position={[-0.95, 0.2, 0.18]} scale={1.1} opacity={0.38} lineOpacity={0.3} /><Model src={ASSETS.chair} position={[0.9, 0.16, 0.18]} rotation={[0, -0.55, 0]} scale={0.88} opacity={0.38} lineOpacity={0.3} /><Model src={ASSETS.table} position={[0, 0.5, 0.76]} scale={0.72} opacity={0.34} lineOpacity={0.26} /></group>
 }
 
