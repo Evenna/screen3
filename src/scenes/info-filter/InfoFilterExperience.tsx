@@ -23,10 +23,10 @@ const config: ScriptedSceneConfig = {
     { to: [1.46, 1.06, 0.74], start: 17.8, end: 19.2, holdUntil: 33.0, color: ACTIVE_BLUE },
   ],
   camera: [
-    { at: 0, position: new THREE.Vector3(2.76, 2.2, 3.28), look: new THREE.Vector3(0.02, 1.24, 0.18), zoom: 122 },
-    { at: 7, position: new THREE.Vector3(1.92, 1.88, 2.36), look: new THREE.Vector3(0.04, 1.26, 0.22), zoom: 150 },
-    { at: 18, position: new THREE.Vector3(2.44, 2.28, 3.0), look: new THREE.Vector3(0.1, 1.72, -0.12), zoom: 124 },
-    { at: 35.8, position: new THREE.Vector3(2.2, 1.9, 2.7), look: new THREE.Vector3(0.04, 1.1, 0.24), zoom: 138 },
+    { at: 0, position: new THREE.Vector3(2.34, 2.02, 2.86), look: new THREE.Vector3(0.08, 1.22, 0.02), zoom: 136 },
+    { at: 7, position: new THREE.Vector3(1.74, 1.78, 2.1), look: new THREE.Vector3(0.08, 1.2, 0.08), zoom: 164 },
+    { at: 18, position: new THREE.Vector3(2.16, 2.12, 2.62), look: new THREE.Vector3(0.08, 1.56, -0.08), zoom: 144 },
+    { at: 35.8, position: new THREE.Vector3(2.02, 1.82, 2.36), look: new THREE.Vector3(0.08, 1.04, 0.12), zoom: 152 },
   ],
 }
 
