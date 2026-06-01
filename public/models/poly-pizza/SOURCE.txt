@@ -5,3 +5,4 @@ Additional model from Poly Pizza: curtain anwvbVovt5 CC-BY 3.0
 Additional model from Poly Pizza: rug-square FiyXx0J6VB CC0 1.0
 Additional dorm model from Poly Pizza: bunk-bed 9SLXF-5abrQ CC-BY 3.0
 Scene 8 currently uses a user-provided dorm model copied from /Users/bytedance/Downloads/宿舍上床下桌.glb into public/models/user-provided/dorm-loft-bed.glb
+Later-scene model assets copied from /Users/bytedance/Downloads/模型资产 zip files into public/models/user-provided/model-assets with ASCII file names.

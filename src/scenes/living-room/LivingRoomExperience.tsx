@@ -284,7 +284,7 @@ function CameraMotion({ time }: { time: number }) {
       .lerp(cameraPoints.memoryLookAt, memoryShot * 0.84)
       .lerp(cameraPoints.homeLookAt, homeShot * 0.8)
 
-    const targetZoom = 74 + focus * 4 + broochShot * 22 + memoryShot * 24 + homeShot * 12
+    const targetZoom = 85 + focus * 5 + broochShot * 25 + memoryShot * 28 + homeShot * 14
 
     camera.position.lerp(targetPosition.current, easing)
     smoothLookAt.current.lerp(targetLookAt.current, easing)
@@ -534,7 +534,7 @@ function StoryObjectLabels({ time }: { time: number }) {
         priority={8}
       />
       <StoryLabel
-        position={[4.12, 2.1, 1.28]}
+        position={[3.35, 1.96, 1.02]}
         time={time}
         start={22.4}
         end={26.6}
@@ -545,7 +545,7 @@ function StoryObjectLabels({ time }: { time: number }) {
         priority={5}
       />
       <StoryLabel
-        position={[0.2, 2.18, -2.62]}
+        position={[0.12, 2.02, -2.26]}
         time={time}
         start={25.2}
         end={29.4}
@@ -726,7 +726,7 @@ function InteriorScene({ time }: { time: number }) {
       <color attach="background" args={['#07080b']} />
       <fog attach="fog" args={['#07080b', 12, 24]} />
 
-      <OrthographicCamera makeDefault position={[7.8, 5.6, 6.2]} zoom={78} />
+      <OrthographicCamera makeDefault position={[7.8, 5.6, 6.2]} zoom={90} />
       <CameraMotion time={time} />
 
       <ambientLight intensity={0.54 - automationDim - focus * 0.08} />

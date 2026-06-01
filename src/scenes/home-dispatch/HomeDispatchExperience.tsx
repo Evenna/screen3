@@ -224,12 +224,12 @@ function CameraMotion({ time }: { time: number }) {
   const targetPosition = useRef(new THREE.Vector3())
   const frames = useMemo(
     () => [
-      { at: 0, position: new THREE.Vector3(-1.25, 6.7, 5.15), look: new THREE.Vector3(-0.2, 0.5, -0.45), zoom: 88 },
-      { at: 7.5, position: new THREE.Vector3(-1.9, 5.2, 3.7), look: new THREE.Vector3(-1.45, 0.42, 0.08), zoom: 112 },
-      { at: 17.5, position: new THREE.Vector3(0.1, 6.2, 4.35), look: new THREE.Vector3(0.42, 0.36, -0.58), zoom: 98 },
-      { at: 28.5, position: new THREE.Vector3(1.05, 5.8, 3.88), look: new THREE.Vector3(2.1, 0.36, -1.25), zoom: 106 },
-      { at: 39.0, position: new THREE.Vector3(-0.55, 6.3, 4.75), look: new THREE.Vector3(-0.75, 0.44, -0.2), zoom: 92 },
-      { at: 47.0, position: new THREE.Vector3(-1.25, 6.7, 5.15), look: new THREE.Vector3(-0.18, 0.46, -0.38), zoom: 88 },
+      { at: 0, position: new THREE.Vector3(-1.25, 6.7, 5.15), look: new THREE.Vector3(-0.2, 0.5, -0.45), zoom: 132 },
+      { at: 7.5, position: new THREE.Vector3(-1.9, 5.2, 3.7), look: new THREE.Vector3(-1.45, 0.42, 0.08), zoom: 168 },
+      { at: 17.5, position: new THREE.Vector3(0.1, 6.2, 4.35), look: new THREE.Vector3(0.42, 0.36, -0.58), zoom: 146 },
+      { at: 28.5, position: new THREE.Vector3(1.05, 5.8, 3.88), look: new THREE.Vector3(2.1, 0.36, -1.25), zoom: 158 },
+      { at: 39.0, position: new THREE.Vector3(-0.55, 6.3, 4.75), look: new THREE.Vector3(-0.75, 0.44, -0.2), zoom: 138 },
+      { at: 47.0, position: new THREE.Vector3(-1.25, 6.7, 5.15), look: new THREE.Vector3(-0.18, 0.46, -0.38), zoom: 132 },
     ],
     [],
   )
@@ -907,7 +907,7 @@ function DeviceStatusLabels({ time }: { time: number }) {
   return (
     <group>
       <StoryLabel
-        position={[-3.18, 0.96, -0.56]}
+        position={[-2.76, 0.96, -0.48]}
         time={time}
         start={33.6}
         end={36.8}
@@ -918,25 +918,23 @@ function DeviceStatusLabels({ time }: { time: number }) {
         distanceFactor={8.2}
       />
       <StoryLabel
-        position={[-3.78, 1.02, -0.46]}
+        position={[-2.72, 1.02, -0.36]}
         time={time}
         start={18.4}
         end={21.6}
         title="空调"
         body="冷气 → 暂停（避免肌肉受寒）"
-        align="right"
         variant="action"
         priority={5}
         distanceFactor={8.0}
       />
       <StoryLabel
-        position={[SPEAKER_POINT.x - 0.42, SPEAKER_POINT.y + 0.06, SPEAKER_POINT.z + 0.08]}
+        position={[SPEAKER_POINT.x + 0.08, SPEAKER_POINT.y + 0.06, SPEAKER_POINT.z + 0.04]}
         time={time}
         start={37.2}
         end={40.4}
         title="智能音箱"
         body="静音模式（避免分散注意力）"
-        align="right"
         variant="device"
         priority={4}
         distanceFactor={7.6}
@@ -1047,7 +1045,7 @@ function InteriorScene({ time }: { time: number }) {
       <directionalLight castShadow intensity={1.75} position={[3.5, 6.2, 4.2]} shadow-mapSize={[2048, 2048]} />
       <pointLight color={ACTIVE_BLUE} intensity={0.85} position={[-2.2, 1.3, 0.8]} distance={4.5} />
       <pointLight color={WARM_BLUE} intensity={0.38} position={[-1.1, 2.1, 0.2]} distance={3.8} />
-      <OrthographicCamera makeDefault position={[-1.25, 6.7, 5.15]} zoom={88} />
+      <OrthographicCamera makeDefault position={[-1.25, 6.7, 5.15]} zoom={132} />
       <CameraMotion time={time} />
 
       <group rotation={[0, -0.04, 0]} position={[0, -0.03, 0]}>

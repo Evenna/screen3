@@ -725,9 +725,9 @@ function Workstation({ time, opacity = 1, showBrooch = true }: { time: number; o
       <SimpleDesk opacity={0.74 * opacity} />
       <ImportedModel path={ASSETS.chair} position={[0, 0.02, 0.94]} rotation={[0, Math.PI, 0]} scale={[1.58, 1.58, 1.58]} opacity={opacity} edgeThreshold={34} lineOpacity={0.6 * opacity} />
       <ImportedModel path={ASSETS.computer} position={[0.12, 0.96, -0.32]} rotation={[0, Math.PI, 0]} scale={[0.72, 0.72, 0.72]} opacity={opacity} edgeThreshold={34} lineOpacity={0.46 * opacity} />
-      <ImportedModel path={ASSETS.keyboard} position={[0.02, 0.935, 0.18]} rotation={[0, 0, 0]} scale={[0.66, 0.66, 0.66]} opacity={opacity} />
-      <ImportedModel path={ASSETS.mug} position={[-0.82, 0.94, 0.16]} rotation={[0, -0.35, 0]} scale={[0.28, 0.28, 0.28]} opacity={opacity} />
-      <OfficeSittingMan time={time} position={[0.08, 0.26, 0.9]} scale={1.34} opacity={opacity} showBrooch={showBrooch} />
+      <ImportedModel path={ASSETS.keyboard} position={[0.02, 0.96, 0.18]} rotation={[0, 0, 0]} scale={[0.66, 0.66, 0.66]} opacity={opacity} />
+      <ImportedModel path={ASSETS.mug} position={[-0.82, 0.96, 0.16]} rotation={[0, -0.35, 0]} scale={[0.28, 0.28, 0.28]} opacity={opacity} />
+      <OfficeSittingMan time={time} position={[0.08, 0, 0.9]} scale={1.34} opacity={opacity} showBrooch={showBrooch} />
     </group>
   )
 }

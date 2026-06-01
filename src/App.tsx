@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import './App.css'
+import SceneEditorExperience from './scenes/scene-editor/SceneEditorExperience'
 
 const scenes = [
   {
@@ -158,6 +159,9 @@ function HomePage() {
             <i>打开预览</i>
           </a>
         ))}
+        <a href="/scene-editor" onClick={(event) => { event.preventDefault(); navigate('/scene-editor'); }}>
+          🔧 打开模型布局编辑器
+        </a>
       </nav>
     </main>
   )
@@ -165,6 +169,11 @@ function HomePage() {
 
 function App() {
   const pathname = usePathname()
+
+  if (pathname === '/scene-editor') {
+    return <SceneEditorExperience />
+  }
+
   const currentScene = useMemo(() => scenes.find((scene) => scene.path === pathname), [pathname])
 
   if (!currentScene) {
@@ -172,33 +181,40 @@ function App() {
   }
 
   const SceneComponent = currentScene.component
-  const otherScenes = scenes.filter((scene) => scene.path !== currentScene.path)
 
   return (
     <>
-      <nav className="scene-switcher" aria-label="页面切换">
-        <a
-          href="/"
-          onClick={(event) => {
-            event.preventDefault()
-            navigate('/')
-          }}
-        >
-          首页
-        </a>
-        {otherScenes.map((scene) => (
+      <div className="scene-switcher-zone">
+        <nav className="scene-switcher" aria-label="页面切换">
           <a
-            href={scene.path}
-            key={scene.path}
+            href="/"
             onClick={(event) => {
               event.preventDefault()
-              navigate(scene.path)
+              navigate('/')
             }}
           >
-            {scene.title}
+            首页
           </a>
-        ))}
-      </nav>
+          {scenes.map((scene) => {
+            const isActive = scene.path === currentScene.path
+            return (
+              <a
+                className={isActive ? 'is-active' : undefined}
+                href={scene.path}
+                key={scene.path}
+                aria-current={isActive ? 'page' : undefined}
+                onClick={(event) => {
+                  event.preventDefault()
+                  if (!isActive) navigate(scene.path)
+                }}
+              >
+                <span>{scene.eyebrow.replace('Scene ', 'S')}</span>
+                {scene.title}
+              </a>
+            )
+          })}
+        </nav>
+      </div>
       <main className="interior-page">
         <Suspense fallback={<div className="scene-loading">场景加载中...</div>}>
           <SceneComponent />

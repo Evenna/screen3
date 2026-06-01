@@ -172,12 +172,12 @@ function CameraMotion({ time }: { time: number }) {
   const targetPosition = useRef(new THREE.Vector3())
   const frames = useMemo(
     () => [
-      { at: 0, position: new THREE.Vector3(0.02, 1.22, 1.55), look: new THREE.Vector3(0, 0.82, 0.05), zoom: 150 },
-      { at: 6.2, position: new THREE.Vector3(1.58, 2.2, 3.05), look: new THREE.Vector3(0.02, 1.0, 0.0), zoom: 112 },
-      { at: 13.8, position: new THREE.Vector3(2.82, 2.28, 2.72), look: new THREE.Vector3(-0.92, 1.55, 0.26), zoom: 126 },
-      { at: 22.8, position: new THREE.Vector3(3.95, 2.9, 3.72), look: new THREE.Vector3(0.55, 1.02, -0.55), zoom: 84 },
-      { at: 33.5, position: new THREE.Vector3(3.2, 4.6, 4.35), look: new THREE.Vector3(0.2, 0.92, 0.06), zoom: 92 },
-      { at: 41.8, position: new THREE.Vector3(3.2, 4.6, 4.35), look: new THREE.Vector3(0.2, 0.92, 0.06), zoom: 92 },
+      { at: 0, position: new THREE.Vector3(0.02, 1.22, 1.55), look: new THREE.Vector3(0, 0.82, 0.05), zoom: 190 },
+      { at: 6.2, position: new THREE.Vector3(1.58, 2.2, 3.05), look: new THREE.Vector3(0.02, 1.0, 0.0), zoom: 142 },
+      { at: 13.8, position: new THREE.Vector3(2.82, 2.28, 2.72), look: new THREE.Vector3(-0.92, 1.55, 0.26), zoom: 160 },
+      { at: 22.8, position: new THREE.Vector3(3.95, 2.9, 3.72), look: new THREE.Vector3(0.55, 1.02, -0.55), zoom: 107 },
+      { at: 33.5, position: new THREE.Vector3(3.2, 4.6, 4.35), look: new THREE.Vector3(0.2, 0.92, 0.06), zoom: 117 },
+      { at: 41.8, position: new THREE.Vector3(3.2, 4.6, 4.35), look: new THREE.Vector3(0.2, 0.92, 0.06), zoom: 117 },
     ],
     [],
   )
@@ -514,7 +514,7 @@ function PhoneOnTable({ time }: { time: number }) {
     <group position={[-0.5, 0.91, 0.62]} rotation={[0, -0.3, 0.02]}>
       <LineBox position={[0, 0.018, 0]} scale={[0.17, 0.032, 0.29]} color="#05080c" edge={ACTIVE_BLUE} opacity={0.92} emissive={ACTIVE_BLUE} emissiveIntensity={ui * 0.18} />
       <LineBox position={[0, 0.04, 0]} scale={[0.13, 0.009, 0.21]} color="#07131d" edge={ACTIVE_BLUE} opacity={0.76} emissive={ACTIVE_BLUE} emissiveIntensity={0.12 + ui * 0.32} />
-      <Html position={[-0.16, 0.075, 0.13]} center distanceFactor={6.1} transform sprite occlude={false} zIndexRange={[18, 0]}>
+      <Html position={[-0.16, 0.075, 0.13]} center distanceFactor={7.4} transform sprite occlude={false} zIndexRange={[18, 0]}>
         <div className="park-calendar-card" style={{ opacity: 0.1 + ui * 0.9 }}>
           <b>{confirmed > 0.5 ? '周三 14:00' : '下次约棋待确认'}</b>
           <span>{confirmed > 0.5 ? '滨江公园｜与张大爷下棋' : '滨江公园'}</span>
@@ -535,7 +535,7 @@ function ParkSign({ time }: { time: number }) {
       <LineBox position={[0, 1.05, 0]} scale={[0.78, 0.38, 0.07]} color="#11161a" edge={blendColor(WHITE_EDGE, ACTIVE_BLUE, active)} opacity={0.76} emissive={ACTIVE_BLUE} emissiveIntensity={active * 0.08} />
       <LineBox position={[0, 1.11, 0.044]} scale={[0.48, 0.035, 0.012]} color={WHITE_EDGE} edge={WHITE_EDGE} opacity={0.72} />
       <LineBox position={[0, 1.0, 0.044]} scale={[0.34, 0.026, 0.012]} color={ACTIVE_BLUE} edge={ACTIVE_BLUE} opacity={0.65 + active * 0.25} emissive={ACTIVE_BLUE} emissiveIntensity={active * 0.28} />
-      <Html position={[-5.35, 1.08, 1.06]} center distanceFactor={10.2} transform sprite occlude={false} zIndexRange={[16, 0]}>
+      <Html position={[-4.28, 1.06, 0.72]} center distanceFactor={9.1} transform sprite occlude={false} zIndexRange={[16, 0]}>
         <div className="object-label object-label--right" style={{ opacity: active * 0.82 }}>
           <strong>地点锚点</strong>
           <span>滨江公园入口</span>
@@ -667,7 +667,7 @@ function ParkChessScene({ time }: { time: number }) {
     <>
       <color attach="background" args={['#06090a']} />
       <fog attach="fog" args={['#06090a', 11, 24]} />
-      <OrthographicCamera makeDefault position={[0.02, 1.22, 1.55]} zoom={150} />
+      <OrthographicCamera makeDefault position={[0.02, 1.22, 1.55]} zoom={190} />
       <CameraMotion time={time} />
 
       <ambientLight intensity={0.5 - focus * 0.06} />
