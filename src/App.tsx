@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import './App.css'
 import SceneEditorExperience from './scenes/scene-editor/SceneEditorExperience'
 
@@ -167,59 +167,87 @@ function HomePage() {
   )
 }
 
+function DevSyncBadge() {
+  const [stamp, setStamp] = useState(() => new Date().toLocaleTimeString('zh-CN', { hour12: false }))
+
+  useEffect(() => {
+    if (!import.meta.hot) return
+    const touch = () => setStamp(new Date().toLocaleTimeString('zh-CN', { hour12: false }))
+    import.meta.hot.on('vite:beforeUpdate', touch)
+    import.meta.hot.on('vite:afterUpdate', touch)
+    return () => {
+      import.meta.hot?.off('vite:beforeUpdate', touch)
+      import.meta.hot?.off('vite:afterUpdate', touch)
+    }
+  }, [])
+
+  if (!import.meta.env.DEV) return null
+
+  return (
+    <div className="dev-sync-badge" title="代码更新后此时间会刷新；若不变说明预览未同步">
+      预览已同步 · {stamp}
+    </div>
+  )
+}
+
 function App() {
   const pathname = usePathname()
 
+  let page = <HomePage />
+
   if (pathname === '/scene-editor') {
-    return <SceneEditorExperience />
+    page = <SceneEditorExperience />
+  } else {
+    const currentScene = scenes.find((scene) => scene.path === pathname)
+    if (currentScene) {
+      const SceneComponent = currentScene.component
+      page = (
+        <>
+          <div className="scene-switcher-zone">
+            <nav className="scene-switcher" aria-label="页面切换">
+              <a
+                href="/"
+                onClick={(event) => {
+                  event.preventDefault()
+                  navigate('/')
+                }}
+              >
+                首页
+              </a>
+              {scenes.map((scene) => {
+                const isActive = scene.path === currentScene.path
+                return (
+                  <a
+                    className={isActive ? 'is-active' : undefined}
+                    href={scene.path}
+                    key={scene.path}
+                    aria-current={isActive ? 'page' : undefined}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      if (!isActive) navigate(scene.path)
+                    }}
+                  >
+                    <span>{scene.eyebrow.replace('Scene ', 'S')}</span>
+                    {scene.title}
+                  </a>
+                )
+              })}
+            </nav>
+          </div>
+          <main className="interior-page">
+            <Suspense fallback={<div className="scene-loading">场景加载中...</div>}>
+              <SceneComponent />
+            </Suspense>
+          </main>
+        </>
+      )
+    }
   }
-
-  const currentScene = useMemo(() => scenes.find((scene) => scene.path === pathname), [pathname])
-
-  if (!currentScene) {
-    return <HomePage />
-  }
-
-  const SceneComponent = currentScene.component
 
   return (
     <>
-      <div className="scene-switcher-zone">
-        <nav className="scene-switcher" aria-label="页面切换">
-          <a
-            href="/"
-            onClick={(event) => {
-              event.preventDefault()
-              navigate('/')
-            }}
-          >
-            首页
-          </a>
-          {scenes.map((scene) => {
-            const isActive = scene.path === currentScene.path
-            return (
-              <a
-                className={isActive ? 'is-active' : undefined}
-                href={scene.path}
-                key={scene.path}
-                aria-current={isActive ? 'page' : undefined}
-                onClick={(event) => {
-                  event.preventDefault()
-                  if (!isActive) navigate(scene.path)
-                }}
-              >
-                <span>{scene.eyebrow.replace('Scene ', 'S')}</span>
-                {scene.title}
-              </a>
-            )
-          })}
-        </nav>
-      </div>
-      <main className="interior-page">
-        <Suspense fallback={<div className="scene-loading">场景加载中...</div>}>
-          <SceneComponent />
-        </Suspense>
-      </main>
+      <DevSyncBadge />
+      {page}
     </>
   )
 }

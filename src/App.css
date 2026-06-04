@@ -2524,3 +2524,19 @@
     bottom: 14px;
   }
 }
+
+.dev-sync-badge {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 9999;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(158, 216, 255, 0.28);
+  background: rgba(8, 12, 18, 0.88);
+  color: rgba(158, 216, 255, 0.92);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}

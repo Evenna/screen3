@@ -6,6 +6,7 @@ const config: ScriptedSceneConfig = {
   environment: 'asset-generation-office',
   pose: 'seated-desk',
   showPerson: false,
+  enableOrbitControls: true,
   dialogues: [],
   panels: [],
   routes: [],

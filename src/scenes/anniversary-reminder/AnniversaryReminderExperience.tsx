@@ -5,6 +5,7 @@ const config: ScriptedSceneConfig = {
   duration: 42,
   environment: 'asset-anniversary-kitchen',
   pose: 'standing-phone',
+  enableOrbitControls: true,
   dialogues: [],
   panels: [],
   routes: [],

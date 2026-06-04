@@ -5,6 +5,7 @@ const config: ScriptedSceneConfig = {
   duration: 44,
   environment: 'asset-hotel-care',
   pose: 'seated-sofa',
+  enableOrbitControls: true,
   dialogues: [],
   panels: [],
   routes: [],

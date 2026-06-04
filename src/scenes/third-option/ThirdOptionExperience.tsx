@@ -5,6 +5,7 @@ const config: ScriptedSceneConfig = {
   duration: 44,
   environment: 'asset-third-option-office',
   pose: 'standing-phone',
+  enableOrbitControls: true,
   dialogues: [],
   panels: [],
   routes: [],

@@ -27,7 +27,7 @@ export type EnvironmentKind =
   | 'asset-hotel-care'
   | 'asset-quiet-window'
   | 'asset-cozy-study'
-export type PoseKind = 'standing-phone' | 'seated-desk' | 'seated-sofa' | 'standing-child' | 'quiet-standing'
+export type PoseKind = 'standing-phone' | 'seated-desk' | 'seated-sofa' | 'seated-sofa-reverse' | 'standing-child' | 'quiet-standing'
 
 export type SceneDialogue = {
   start: number
@@ -69,6 +69,9 @@ export type ScriptedSceneConfig = {
   progressClass?: string
   disableEnvironmentMotion?: boolean
   enableOrbitControls?: boolean
+  personPosition?: Vec3
+  personRotation?: Vec3
+  personScale?: number
   panels: ScenePanel[]
   dialogues: SceneDialogue[]
   routes: SceneRoute[]
@@ -210,20 +213,25 @@ export function Model({ src, ...props }: Parameters<typeof GltfModel>[0]) { retu
 
 function EvansBrooch({ time, warm = false }: { time: number; warm?: boolean }) { const color = new THREE.Color(ACTIVE_BLUE).lerp(new THREE.Color(WARM_GLOW), warm ? 0.72 : 0).getStyle(); return <group position={[BROOCH.x, BROOCH.y, BROOCH.z]} rotation={[Math.PI / 2, 0, 0]}><mesh><torusGeometry args={[0.05, 0.004, 10, 36]} /><meshBasicMaterial color={color} transparent opacity={0.76} /></mesh><mesh position={[0, 0, 0.006]}><sphereGeometry args={[0.027, 18, 12]} /><meshStandardMaterial color="#101722" emissive={color} emissiveIntensity={0.42 + pulse(time, 2.4) * 0.26} roughness={0.55} /></mesh></group> }
 
-function Person({ time, pose, broochMode = 'normal' }: { time: number; pose: PoseKind; broochMode?: ScriptedSceneConfig['broochMode'] }) {
+function Person({ time, pose, broochMode = 'normal', position, rotation: rotationOverride, scale: scaleOverride }: { time: number; pose: PoseKind; broochMode?: ScriptedSceneConfig['broochMode']; position?: Vec3; rotation?: Vec3; scale?: number }) {
   const showBrooch = broochMode === 'normal' || (broochMode === 'delayed' && time >= 30)
-  const isSeated = pose === 'seated-desk' || pose === 'seated-sofa'
+  const isSeated = pose === 'seated-desk' || pose === 'seated-sofa' || pose === 'seated-sofa-reverse'
   const src = isSeated ? ASSETS.man : ASSETS.baseMale
-  const rotation: Vec3 = isSeated ? [0, Math.PI / 2, 0] : [0, -0.1, 0]
-  const scale = pose === 'standing-child' ? 0.78 : isSeated ? 1.3 : 1.52
-  return <group position={pose === 'standing-child' ? [0.42, 0, 0.22] : [0, 0, 0.18]}>
-    <Model src={src} position={[0, 0, 0]} rotation={rotation} scale={scale} opacity={0.44} lineOpacity={0.36} threshold={56} />
+  const rotation: Vec3 = rotationOverride ?? (pose === 'seated-sofa-reverse' ? [0, Math.PI, 0] : isSeated ? [0, Math.PI / 2, 0] : [0, -0.1, 0])
+  const scale = scaleOverride ?? (pose === 'standing-child' ? 0.78 : isSeated ? 1.3 : 1.52)
+  const groupPos: Vec3 = position ?? (pose === 'standing-child' ? [0.42, 0, 0.22] : pose === 'seated-sofa-reverse' ? [0, 0.1, 0.22] : [0, 0, 0.18])
+  const personLineOpacity = isSeated ? 0.88 : 0.36
+  const personThreshold = isSeated ? 18 : 56
+  const personOpacity = isSeated ? 0.78 : 0.44
+  const personTint = isSeated ? '#3d5068' : '#101721'
+  return <group position={groupPos}>
+    <Model src={src} position={[0, 0, 0]} rotation={rotation} scale={scale} tint={personTint} opacity={personOpacity} lineOpacity={personLineOpacity} threshold={personThreshold} />
     {(pose === 'standing-phone' || pose === 'quiet-standing') && <LineBox position={[0.26, 0.78, 0.32]} scale={[0.11, 0.18, 0.018]} rotation={[0.15, 0.08, -0.14]} color="#06111f" edge={ACTIVE_BLUE} opacity={0.42} emissive={ACTIVE_BLUE} emissiveIntensity={0.08} />}
     {showBrooch && <EvansBrooch time={time} warm={time > 26} />}
   </group>
 }
 
-function RoomShell({ windowSide = 'back' }: { windowSide?: 'back' | 'left' | 'right' }) {
+function RoomShell({ windowSide = 'back' }: { windowSide?: 'back' | 'left' | 'right' | 'none' }) {
   return <group>
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.25]} receiveShadow><planeGeometry args={[7.4, 4.8]} /><meshStandardMaterial color="#05080d" roughness={0.86} /><Edges color={MUTED_EDGE} threshold={5} /></mesh>
     <LineBox position={[0, 1.35, -2.32]} scale={[7.4, 2.7, 0.08]} color="#060910" edge={MUTED_EDGE} opacity={0.25} />
@@ -275,18 +283,18 @@ function Environment({ kind }: { kind: EnvironmentKind }) {
     <Model src={ASSETS.whiteboard} position={[2.2, 0, -1.5]} rotation={[0, -0.12, 0]} scale={1.8} opacity={0.42} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} />
   </group>
   if (kind === 'asset-late-work') return <group>
-    <RoomShell windowSide="back" />
+    <RoomShell windowSide="none" />
     <LineBox position={[-1.65, 1.42, -2.28]} scale={[1.55, 1.0, 0.035]} color="#071421" edge={MUTED_EDGE} opacity={0.2} emissive={ACTIVE_BLUE} emissiveIntensity={0.012} />
     <Model src={ASSETS.curtain} position={[-2.28, 0.66, -2.18]} rotation={[0, 0, 0]} scale={1.16} opacity={0.56} lineOpacity={0.86} edge={WHITE_EDGE} threshold={8} />
     <Model src={ASSETS.curtain} position={[-1.02, 0.66, -2.18]} rotation={[0, Math.PI, 0]} scale={1.16} opacity={0.56} lineOpacity={0.86} edge={WHITE_EDGE} threshold={8} />
     <group position={[-0.48, 0, -0.18]} scale={1.08}>
       <Model src={ASSETS.seatedYoungMan} position={[-0.52, 0, -0.04]} rotation={[0, -Math.PI / 2, 0]} scale={1.28} tint="#172231" opacity={0.6} lineOpacity={0.86} edge={WHITE_EDGE} threshold={8} />
-      <Model src={ASSETS.assetMonitor} position={[-1.08, 0.62, -0.28]} rotation={[0, Math.PI / 2, 0]} scale={0.46} opacity={0.58} lineOpacity={0.7} edge={ACTIVE_BLUE} threshold={8} />
-      <Model src={ASSETS.laptop} position={[-0.66, 0.61, 0.08]} rotation={[0, 1.18, 0]} scale={0.34} opacity={0.56} lineOpacity={0.68} edge={ACTIVE_BLUE} threshold={8} />
-      <Model src={ASSETS.assetKeyboard} position={[-0.86, 0.6, 0.02]} rotation={[0, Math.PI / 2, 0]} scale={0.24} opacity={0.5} lineOpacity={0.58} edge={WHITE_EDGE} threshold={8} />
-      <Model src={ASSETS.coffeeCup} position={[-1.18, 0.6, 0.16]} scale={0.1} opacity={0.52} lineOpacity={0.56} edge={WHITE_EDGE} threshold={8} />
-      <Model src={ASSETS.paper} position={[-0.55, 0.6, 0.18]} rotation={[0, 0.28, 0.08]} scale={0.17} opacity={0.52} lineOpacity={0.58} edge={WHITE_EDGE} threshold={8} />
-      <Model src={ASSETS.phone} position={[-0.42, 0.6, 0.04]} rotation={[0, -0.18, 0.1]} scale={0.085} opacity={0.5} lineOpacity={0.56} edge={ACTIVE_BLUE} threshold={8} />
+      <Model src={ASSETS.assetMonitor} position={[-1.08, 0.68, -0.28]} rotation={[0, Math.PI / 2, 0]} scale={0.46} opacity={0.58} lineOpacity={0.7} edge={ACTIVE_BLUE} threshold={8} />
+      <Model src={ASSETS.laptop} position={[-0.66, 0.72, 0.08]} rotation={[0, 1.18, 0]} scale={0.34} opacity={0.56} lineOpacity={0.68} edge={ACTIVE_BLUE} threshold={8} />
+      <Model src={ASSETS.assetKeyboard} position={[-0.86, 0.66, 0.02]} rotation={[0, Math.PI / 2, 0]} scale={0.24} opacity={0.5} lineOpacity={0.58} edge={WHITE_EDGE} threshold={8} />
+      <Model src={ASSETS.coffeeCup} position={[-0.98, 0.72, 0.2]} scale={0.15} opacity={0.52} lineOpacity={0.56} edge={WHITE_EDGE} threshold={8} />
+      <Model src={ASSETS.paper} position={[-0.55, 0.66, 0.18]} rotation={[0, 0.28, 0.08]} scale={0.17} opacity={0.52} lineOpacity={0.58} edge={WHITE_EDGE} threshold={8} />
+      <Model src={ASSETS.phone} position={[-0.42, 0.66, 0.04]} rotation={[0, -0.18, 0.1]} scale={0.085} opacity={0.5} lineOpacity={0.56} edge={ACTIVE_BLUE} threshold={8} />
     </group>
     <Model src={ASSETS.floorBookshelf} position={[1.16, 0, -1.3]} rotation={[0, -0.03, 0]} scale={1.68} opacity={0.42} lineOpacity={0.54} edge={SOFT_EDGE} threshold={10} />
     <LineBox position={[1.18, 1.34, -1.05]} scale={[0.18, 0.09, 0.035]} color={ACTIVE_BLUE} edge={ACTIVE_BLUE} opacity={0.62} emissive={ACTIVE_BLUE} emissiveIntensity={0.2} />
@@ -303,7 +311,24 @@ function Environment({ kind }: { kind: EnvironmentKind }) {
     <Model src={ASSETS.bunkBed} position={[1.38, 0.86, -1.18]} rotation={[0, 0, 0]} scale={1.72} tint="#1b2330" opacity={0.78} lineOpacity={1} edge="#ffffff" threshold={6} />
   </group>
   if (kind === 'cozy-study') return <group><RoomShell windowSide="back" /><Model src={ASSETS.rug} position={[0.1, 0.03, 0.48]} rotation={[-Math.PI / 2, 0, 0]} scale={1.86} opacity={0.24} lineOpacity={0.2} edge={SOFT_EDGE} /><Model src={ASSETS.sofaSmall} position={[0.02, 0.18, 0.34]} scale={1.2} opacity={0.44} lineOpacity={0.34} edge={WHITE_EDGE} /><Model src={ASSETS.armchair} position={[-1.2, 0.16, 0.52]} rotation={[0, 0.34, 0]} scale={0.98} opacity={0.42} lineOpacity={0.32} edge={WHITE_EDGE} /><Model src={ASSETS.table} position={[0.66, 0.46, 1.02]} scale={0.74} opacity={0.38} lineOpacity={0.28} /><Model src={ASSETS.bookcase} position={[1.96, 0, -1.04]} scale={1.3} opacity={0.32} lineOpacity={0.26} edge={SOFT_EDGE} /><Model src={ASSETS.bookcase} position={[-2.02, 0, -1.06]} scale={1.12} opacity={0.28} lineOpacity={0.22} edge={SOFT_EDGE} /><Model src={ASSETS.lamp} position={[-1.88, 0, -0.22]} scale={1.08} opacity={0.34} lineOpacity={0.24} /><Model src={ASSETS.curtain} position={[1.48, 0.38, -2.12]} scale={1.28} opacity={0.3} lineOpacity={0.24} edge={SOFT_EDGE} /><Model src={ASSETS.curtain} position={[2.06, 0.38, -2.12]} scale={1.28} opacity={0.3} lineOpacity={0.24} edge={SOFT_EDGE} /></group>
-  if (kind === 'asset-cozy-study') return <group><RoomShell windowSide="back" /><Model src={ASSETS.rug} position={[0.1, 0.03, 0.48]} rotation={[-Math.PI / 2, 0, 0]} scale={1.86} opacity={0.2} lineOpacity={0.18} edge={SOFT_EDGE} /><Model src={ASSETS.singleSofaChair} position={[0.0, 0.2, 0.34]} rotation={[0, -0.12, 0]} scale={1.22} opacity={0.46} lineOpacity={0.5} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.comfyChair} position={[-1.18, 0.18, 0.52]} rotation={[0, 0.34, 0]} scale={1.0} opacity={0.42} lineOpacity={0.46} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.table} position={[0.66, 0.46, 1.02]} scale={0.74} opacity={0.38} lineOpacity={0.28} /><Model src={ASSETS.floorBookshelf} position={[1.86, 0, -1.02]} scale={1.28} opacity={0.36} lineOpacity={0.42} edge={SOFT_EDGE} threshold={12} /><Model src={ASSETS.desktopBookshelf} position={[-1.88, 0.78, -1.12]} scale={0.86} opacity={0.38} lineOpacity={0.42} edge={SOFT_EDGE} threshold={12} /><Model src={ASSETS.assetLamp} position={[-1.8, 0.02, -0.2]} scale={0.94} opacity={0.34} lineOpacity={0.38} edge={WHITE_EDGE} threshold={12} /><Model src={ASSETS.plant} position={[1.42, 0, 0.86]} scale={0.72} opacity={0.34} lineOpacity={0.36} edge={SOFT_EDGE} threshold={12} /></group>
+  if (kind === 'asset-cozy-study') return <group>
+    <RoomShell windowSide="none" />
+    <Model src={ASSETS.singleSofaChair} position={[0.0, 0.0, 0.22]} rotation={[0, 0, 0]} scale={1.22} opacity={0.48} lineOpacity={0.42} edge={WHITE_EDGE} threshold={10} />
+    <Model src={ASSETS.comfyChair} position={[-1.32, 0.0, 0.44]} rotation={[0, 0.62, 0]} scale={1.0} opacity={0.44} lineOpacity={0.82} edge={WHITE_EDGE} threshold={8} />
+    <Model src={ASSETS.table} position={[0.72, 0, 1.06]} scale={0.74} opacity={0.4} lineOpacity={0.68} edge={WHITE_EDGE} />
+    <Model src={ASSETS.mug} position={[0.72, 0.44, 1.06]} scale={0.24} opacity={0.52} lineOpacity={0.56} edge={WHITE_EDGE} />
+    <Model src={ASSETS.floorBookshelf} position={[1.86, 0, -1.02]} scale={1.68} opacity={0.38} lineOpacity={0.36} edge={SOFT_EDGE} threshold={11} />
+    <Model src={ASSETS.desktopBookshelf} position={[-1.88, 0, -1.12]} scale={1.05} opacity={0.37} lineOpacity={0.34} edge={SOFT_EDGE} threshold={11} />
+    <group position={[-1.88, 1.32, -2.18]}>
+      <LineBox position={[0, 0, 0]} scale={[0.78, 0.56, 0.025]} color="#121a24" edge={SOFT_EDGE} opacity={0.38} />
+      <LineBox position={[0, 0, 0.018]} scale={[0.62, 0.4, 0.012]} color="#223a52" edge={MUTED_EDGE} opacity={0.34} emissive={ACTIVE_BLUE} emissiveIntensity={0.035} />
+    </group>
+    <Model src={ASSETS.assetLamp} position={[-1.8, 0.02, -0.2]} scale={0.94} opacity={0.38} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} />
+    <Model src={ASSETS.lamp} position={[1.72, 0, -0.56]} scale={1.0} opacity={0.36} lineOpacity={0.46} edge={WHITE_EDGE} />
+    <LineBox position={[1.72, 0.88, -0.56]} scale={[0.2, 0.36, 0.2]} color="#ffd49a" edge={WARM_GLOW} opacity={0.3} emissive={WARM_GLOW} emissiveIntensity={0.22} />
+    <Model src={ASSETS.plant} position={[1.42, 0, 0.86]} scale={0.72} opacity={0.36} lineOpacity={0.48} edge={WHITE_EDGE} threshold={10} />
+    <Model src={ASSETS.plant} position={[-0.58, 0, -1.38]} scale={0.64} opacity={0.32} lineOpacity={0.46} edge={WHITE_EDGE} threshold={10} />
+  </group>
   if (kind === 'asset-generation-office') return <group><RoomShell windowSide="back" /><Model src={ASSETS.officeDesk} position={[0.18, 0.54, 0.02]} scale={1.52} opacity={0.46} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.seatedWoman} position={[0.02, 0.64, 0.52]} rotation={[0, Math.PI / 2, 0]} scale={1.28} tint="#172231" opacity={0.56} lineOpacity={0.7} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.assetMonitor} position={[0.32, 1.02, -0.42]} scale={0.52} opacity={0.48} lineOpacity={0.48} edge={ACTIVE_BLUE} threshold={10} /><Model src={ASSETS.assetKeyboard} position={[0.06, 0.96, -0.02]} scale={0.34} opacity={0.42} lineOpacity={0.44} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.phone} position={[0.62, 0.98, 0.2]} rotation={[0, -0.24, 0.1]} scale={0.2} opacity={0.5} lineOpacity={0.54} edge={ACTIVE_BLUE} threshold={8} /><Model src={ASSETS.coffeeCup} position={[-0.42, 0.98, 0.12]} scale={0.18} opacity={0.46} lineOpacity={0.42} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.plant} position={[1.72, 0, -0.96]} scale={0.72} opacity={0.34} lineOpacity={0.34} edge={SOFT_EDGE} threshold={12} /></group>
   if (kind === 'asset-anniversary-kitchen') return <group><RoomShell windowSide="left" /><Model src={ASSETS.kitchenIsland} position={[0.16, 0.68, 0.16]} scale={1.5} opacity={0.48} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.fridge} position={[-1.92, 0, -1.1]} rotation={[0, 0.18, 0]} scale={1.22} opacity={0.42} lineOpacity={0.46} edge={SOFT_EDGE} threshold={12} /><Model src={ASSETS.phone} position={[0.52, 1.02, 0.16]} rotation={[0, -0.22, 0.1]} scale={0.2} opacity={0.54} lineOpacity={0.58} edge={ACTIVE_BLUE} threshold={8} /><Model src={ASSETS.coffeeCup} position={[-0.34, 1.0, 0.22]} scale={0.18} opacity={0.46} lineOpacity={0.42} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.plant} position={[1.82, 0, -0.88]} scale={0.7} opacity={0.34} lineOpacity={0.34} edge={SOFT_EDGE} threshold={12} /></group>
   if (kind === 'asset-third-option-office') return <group><RoomShell /><LineBox position={[0, 1.72, -2.18]} scale={[3.6, 1.05, 0.035]} color="#071421" edge={MUTED_EDGE} opacity={0.22} emissive={ACTIVE_BLUE} emissiveIntensity={0.02} /><Model src={ASSETS.officeDesk} position={[-0.82, 0.54, 0.14]} rotation={[0, 0.18, 0]} scale={1.44} opacity={0.46} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.laptop} position={[-0.64, 1.0, -0.1]} rotation={[0, 0.34, 0]} scale={0.42} opacity={0.5} lineOpacity={0.52} edge={ACTIVE_BLUE} threshold={10} /><Model src={ASSETS.phone} position={[-0.18, 1.0, 0.26]} rotation={[0, -0.2, 0.12]} scale={0.18} opacity={0.54} lineOpacity={0.58} edge={ACTIVE_BLUE} threshold={8} /><Model src={ASSETS.whiteboard} position={[1.62, 1.22, -1.42]} rotation={[0, -0.34, 0]} scale={0.92} opacity={0.44} lineOpacity={0.48} edge={WHITE_EDGE} threshold={12} /><Model src={ASSETS.plant} position={[1.72, 0, 0.78]} scale={0.72} opacity={0.32} lineOpacity={0.34} edge={SOFT_EDGE} threshold={12} /></group>
@@ -527,15 +552,14 @@ function Scene7LampWarmth({ time }: { time: number }) {
       <sphereGeometry args={[1, 32, 16]} />
       <meshBasicMaterial color={WARM_GLOW} transparent opacity={glow} depthWrite={false} />
     </mesh>}
-    <LineBox position={[0.42, 1.34, -1.92]} scale={[1.75, 0.84, 0.028]} color="#071421" edge={SOFT_EDGE} opacity={0.22} emissive={ACTIVE_BLUE} emissiveIntensity={0.02} />
-    {[-0.18, 0.2, 0.68, 1.12].map((x, index) => <LineBox key={`scene7-city-${index}`} position={[x, 1.18 + (index % 2) * 0.18, -1.88]} scale={[0.08, 0.18, 0.018]} color="#142033" edge={ACTIVE_BLUE} opacity={0.2} emissive={ACTIVE_BLUE} emissiveIntensity={0.035 + pulse(time + index, 0.8) * 0.02} />)}
+    {[-1.95, -1.65, -1.35].map((x, index) => <LineBox key={`scene7-city-${index}`} position={[x, 1.18 + (index % 2) * 0.18, -2.2]} scale={[0.08, 0.18, 0.018]} color="#142033" edge={ACTIVE_BLUE} opacity={0.2} emissive={ACTIVE_BLUE} emissiveIntensity={0.035 + pulse(time + index, 0.8) * 0.02} />)}
   </group>
 }
 
 function Scene7ClosingLaptop({ time }: { time: number }) {
   const done = smoothStep(time, 38, 43)
   if (done <= 0.01) return null
-  return <group position={[-0.42, 1.04, -0.12]} rotation={[0, 0.28, -0.95 * done]}>
+  return <group position={[-1.19, 0.78, -0.09]} rotation={[0, 0.28, -0.95 * done]}>
     <LineBox position={[0, 0.06, 0]} scale={[0.34, 0.018, 0.22]} color="#101721" edge={WHITE_EDGE} opacity={0.28 + done * 0.34} emissive={ACTIVE_BLUE} emissiveIntensity={0.02 * (1 - done)} />
   </group>
 }
@@ -559,7 +583,7 @@ function Scene7LateWorkMotion({ time }: { time: number }) {
 
 function Panels({ panels, time }: { panels: ScenePanel[]; time: number }) { return <>{panels.map(panel => { const opacity = visibilityBetween(time, panel.start, panel.end); if (opacity <= 0.01) return null; return <Html key={panel.id} position={panel.position} center distanceFactor={panel.variant === 'main' ? 8.8 : 8.2} transform sprite occlude={false} zIndexRange={[panel.variant === 'main' ? 42 : 38, 0]}><div className={`scripted-panel scripted-panel--${panel.variant ?? 'side'}`} style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.76 + opacity * 0.07})` }}><div className="scripted-panel-topbar"><span>{panel.title}</span>{panel.subtitle && <i>{panel.subtitle}</i>}</div>{panel.lines.map((line, index) => <p key={`${panel.id}-${index}`}>{line}</p>)}</div></Html> })}</> }
 function Dialogues({ dialogues, time }: { dialogues: SceneDialogue[]; time: number }) { return <>{dialogues.map(entry => { const opacity = visibilityBetween(time, entry.start, entry.end); if (opacity <= 0.01) return null; return <Html key={`${entry.title}-${entry.start}`} position={entry.position ?? [-0.46, entry.kind === 'person' ? 1.58 : 1.72, 0.86]} center distanceFactor={7.8} transform sprite occlude={false} zIndexRange={[39, 0]}><div className={`object-label object-label--${entry.kind} scripted-dialog`} style={{ opacity, transform: `translateY(${8 - opacity * 8}px) scale(${0.94 + opacity * 0.06})` }}><strong>{entry.title}</strong><span>{entry.body}</span></div></Html> })}</> }
-function SceneContent({ config, time }: { config: ScriptedSceneConfig; time: number }) { return <><Environment kind={config.environment} />{config.showPerson !== false && <Person time={time} pose={config.pose} broochMode={config.broochMode} />}{!config.disableEnvironmentMotion && config.environment === 'asset-scene6' && <><EvansBrooch time={time} warm={time > 28} /><Scene6DispatchMotion time={time} /></>}{!config.disableEnvironmentMotion && config.environment === 'asset-late-work' && <Scene7LateWorkMotion time={time} />}<group>{config.routes.map((route, index) => <AnimatedRoute key={index} route={route} time={time} />)}<Panels panels={config.panels} time={time} /><Dialogues dialogues={config.dialogues} time={time} /></group></> }
+function SceneContent({ config, time }: { config: ScriptedSceneConfig; time: number }) { return <><Environment kind={config.environment} />{config.showPerson !== false && <Person time={time} pose={config.pose} broochMode={config.broochMode} position={config.personPosition} rotation={config.personRotation} scale={config.personScale} />}{!config.disableEnvironmentMotion && config.environment === 'asset-scene6' && <><EvansBrooch time={time} warm={time > 28} /><Scene6DispatchMotion time={time} /></>}{!config.disableEnvironmentMotion && config.environment === 'asset-late-work' && <Scene7LateWorkMotion time={time} />}<group>{config.routes.map((route, index) => <AnimatedRoute key={index} route={route} time={time} />)}<Panels panels={config.panels} time={time} /><Dialogues dialogues={config.dialogues} time={time} /></group></> }
 function AnimatedScene({ config, time }: { config: ScriptedSceneConfig; time: number }) {
   const firstFrame = config.camera?.[0] ?? { position: new THREE.Vector3(2.55, 2.1, 3.1), look: new THREE.Vector3(0, 1.16, 0.18), zoom: 122, at: 0 }
   const controlsEnabled = config.enableOrbitControls === true
@@ -587,4 +611,16 @@ function AnimatedScene({ config, time }: { config: ScriptedSceneConfig; time: nu
     />
   </>
 }
-export function ScriptedSceneExperience({ config }: { config: ScriptedSceneConfig }) { const time = useStoryClock(config.duration); return <section className="interior-shell" aria-label={config.ariaLabel}><Canvas shadows dpr={[1, 2]}><Suspense fallback={null}><AnimatedScene config={config} time={time} /></Suspense></Canvas></section> }
+export function ScriptedSceneExperience({ config }: { config: ScriptedSceneConfig }) {
+  const time = useStoryClock(config.duration)
+  const canvasKey = [
+    config.environment,
+    config.pose,
+    config.personPosition?.join(','),
+    config.personRotation?.join(','),
+    config.personScale ?? '',
+    config.showPerson ?? true,
+    config.enableOrbitControls ?? false,
+  ].join('|')
+  return <section className="interior-shell" aria-label={config.ariaLabel}><Canvas key={canvasKey} shadows dpr={[1, 2]}><Suspense fallback={null}><AnimatedScene config={config} time={time} /></Suspense></Canvas></section>
+}

@@ -6,6 +6,7 @@ const config: ScriptedSceneConfig = {
   environment: 'asset-quiet-window',
   pose: 'quiet-standing',
   broochMode: 'delayed',
+  enableOrbitControls: true,
   dialogues: [],
   panels: [],
   routes: [],
