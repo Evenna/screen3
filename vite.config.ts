@@ -15,6 +15,7 @@ function forceReloadOnSceneEdit(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/screen3/',
   plugins: [react(), forceReloadOnSceneEdit()],
   server: {
     port: 5173,
