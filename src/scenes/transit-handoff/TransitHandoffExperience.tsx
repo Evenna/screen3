@@ -1,47 +1,28 @@
-import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
-import { ContactShadows, Edges, OrbitControls, OrthographicCamera } from '@react-three/drei'
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import type { Mesh, Object3D } from 'three'
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import '../../App.css'
+import { ScriptedSceneExperience, type ScriptedSceneConfig } from '../_shared/ScriptedSceneExperience'
 
-type Vec3 = [number, number, number]
-const STORY_DURATION = 40
-const ACTIVE_BLUE = '#9ed8ff'
-const WHITE_EDGE = '#ffffff'
-const SOFT_EDGE = '#77818f'
-const MUTED_EDGE = '#46515e'
-const BROOCH = new THREE.Vector3(0.02, 1.24, 0.36)
-function clamp01(value: number) { return Math.min(1, Math.max(0, value)) }
-function smoothStep(value: number, start: number, end: number) { const x = clamp01((value - start) / (end - start)); return x * x * (3 - 2 * x) }
-function pulse(time: number, speed = 1) { return 0.5 + Math.sin(time * speed) * 0.5 }
-function wrapTime(time: number) { return time % STORY_DURATION }
-function useStoryClock() { const [time, setTime] = useState(0); useEffect(() => { const startedAt = performance.now(); let frame = 0; const tick = () => { setTime(wrapTime((performance.now() - startedAt) / 1000)); frame = requestAnimationFrame(tick) }; frame = requestAnimationFrame(tick); return () => cancelAnimationFrame(frame) }, []); return time }
-function CameraMotion({ time }: { time: number }) { const { camera } = useThree(); const lookAt = useRef(new THREE.Vector3(0, 1.25, 0.05)); const frames = useMemo(() => [{ at: 0, position: new THREE.Vector3(2.6, 2.1, 3.15), look: new THREE.Vector3(0, 1.2, 0.12), zoom: 126 }, { at: 6, position: new THREE.Vector3(1.85, 1.72, 2.25), look: new THREE.Vector3(0.04, 1.22, 0.36), zoom: 158 }, { at: 13, position: new THREE.Vector3(2.6, 2.35, 3.05), look: new THREE.Vector3(0.02, 1.66, 0.05), zoom: 122 }, { at: 24, position: new THREE.Vector3(2.35, 2.08, 2.72), look: new THREE.Vector3(0.32, 1.38, 0.28), zoom: 134 }, { at: 36, position: new THREE.Vector3(2.15, 1.82, 2.58), look: new THREE.Vector3(0.06, 1.1, 0.35), zoom: 146 }, { at: 39.8, position: new THREE.Vector3(2.15, 1.82, 2.58), look: new THREE.Vector3(0.06, 1.1, 0.35), zoom: 146 }], []); useFrame((_, delta) => { const index = Math.max(0, frames.findIndex((f, i) => { const n = frames[i + 1]; return n ? time >= f.at && time < n.at : time >= f.at })); const current = frames[index], next = frames[Math.min(index + 1, frames.length - 1)]; const blend = current === next ? 0 : smoothStep(time, current.at, next.at); const targetPosition = current.position.clone().lerp(next.position, blend); const targetLookAt = current.look.clone().lerp(next.look, blend); const targetZoom = current.zoom + (next.zoom - current.zoom) * blend; const ease = 1 - Math.exp(-delta * 2.7); camera.position.lerp(targetPosition, ease); lookAt.current.lerp(targetLookAt, ease); camera.zoom += (targetZoom - camera.zoom) * ease; camera.lookAt(lookAt.current); camera.updateProjectionMatrix() }); return null }
-function LineBox({ position, scale, rotation = [0, 0, 0], color = '#101721', edge = WHITE_EDGE, opacity = 0.72, emissive = '#000', emissiveIntensity = 0 }: { position: Vec3; scale: Vec3; rotation?: Vec3; color?: string; edge?: string; opacity?: number; emissive?: string; emissiveIntensity?: number }) { return <mesh position={position} rotation={rotation} scale={scale} castShadow receiveShadow><boxGeometry /><meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={emissiveIntensity} roughness={0.78} transparent opacity={opacity} /><Edges color={edge} threshold={10} /></mesh> }
-function styleImported(root: Object3D, tint = '#101721', edge = WHITE_EDGE, fillOpacity = 0.46, lineOpacity = 0.32, threshold = 42) { root.traverse((child) => { const mesh = child as Mesh; if (!mesh.isMesh || !mesh.geometry) return; mesh.castShadow = true; mesh.receiveShadow = true; mesh.material = new THREE.MeshStandardMaterial({ color: tint, emissive: tint, emissiveIntensity: 0.01, roughness: 0.82, transparent: true, opacity: fillOpacity }); mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, threshold), new THREE.LineBasicMaterial({ color: edge, transparent: true, opacity: lineOpacity }))) }) }
-function fitObject(root: Object3D, size = 1) { const box = new THREE.Box3().setFromObject(root); const d = new THREE.Vector3(); box.getSize(d); root.scale.multiplyScalar(size / Math.max(d.x, d.y, d.z, 0.001)); const fitted = new THREE.Box3().setFromObject(root); const c = new THREE.Vector3(); fitted.getCenter(c); root.position.sub(c); root.position.y -= fitted.min.y - c.y }
-function Model({ src, position, rotation = [0, 0, 0], scale = 1, edge = WHITE_EDGE, opacity = 0.46, lineOpacity = 0.32 }: { src: string; position: Vec3; rotation?: Vec3; scale?: number; edge?: string; opacity?: number; lineOpacity?: number }) { const gltf = useLoader(GLTFLoader, src); const object = useMemo(() => { const clone = gltf.scene.clone(true); fitObject(clone, scale); styleImported(clone, '#101721', edge, opacity, lineOpacity); return clone }, [edge, gltf.scene, lineOpacity, opacity, scale]); return <primitive object={object} position={position} rotation={rotation} /> }
+const config: ScriptedSceneConfig = {
+  ariaLabel: '地铁车厢内李明站立靠扶手看手机三维静态场景',
+  duration: 36,
+  environment: 'asset-subway',
+  pose: 'standing-phone',
+  showPerson: true,
+  broochMode: 'normal',
+  enableOrbitControls: true,
+  personSrc: '/models/user-provided/model-assets/subway-person.glb',
+  personPosition: [0, 0, 0.24],
+  personRotation: [0, -0.12, 0],
+  personScale: 1.5,
+  camera: [
+    { at: 0, position: new THREE.Vector3(2.4, 1.94, 2.88), look: new THREE.Vector3(0.08, 1.18, 0.24), zoom: 130 },
+  ],
+  dialogues: [],
+  panels: [],
+  routes: [],
+}
 
-function EvansBrooch({ time }: { time: number }) { return <group position={[BROOCH.x, BROOCH.y, BROOCH.z]} rotation={[Math.PI / 2, 0, 0]}><mesh><torusGeometry args={[0.05, 0.004, 10, 36]} /><meshBasicMaterial color={ACTIVE_BLUE} transparent opacity={0.76} /></mesh><mesh position={[0, 0, 0.006]}><sphereGeometry args={[0.027, 18, 12]} /><meshStandardMaterial color="#101722" emissive={ACTIVE_BLUE} emissiveIntensity={0.42 + pulse(time, 2.4) * 0.26} roughness={0.55} /></mesh></group> }
-function StandingPerson({ time, position = [0,0,0] as Vec3, opacity = 1 }: { time: number; position?: Vec3; opacity?: number }) { return <group position={position}><Model src="/models/user-provided/model-assets/subway-person.glb" position={[0,0,0]} rotation={[0,-0.1,0]} scale={1.5} opacity={0.38 * opacity} lineOpacity={0.52 * opacity} edge={WHITE_EDGE}/><LineBox position={[0.26, 0.78, 0.32]} scale={[0.11, 0.18, 0.018]} rotation={[0.15, 0.08, -0.14]} color="#06111f" edge={ACTIVE_BLUE} opacity={0.42 * opacity} emissive={ACTIVE_BLUE} emissiveIntensity={0.08} />{opacity >= 1 && <EvansBrooch time={time} />}</group> }
-function SubwayCar() { return <group><mesh rotation={[-Math.PI / 2,0,0]} position={[0,0,-0.25]} receiveShadow><planeGeometry args={[7.4,4.6]} /><meshStandardMaterial color="#05080d" roughness={0.86} /><Edges color={MUTED_EDGE} threshold={5} /></mesh><Model src="/models/user-provided/model-assets/subway-scene.glb" position={[0,0.04,-0.95]} rotation={[0,Math.PI/2,0]} scale={4.35} opacity={0.34} lineOpacity={0.48} edge={WHITE_EDGE}/><LineBox position={[0,2.35,-0.35]} scale={[6.8,0.08,3.7]} color="#060910" edge={MUTED_EDGE} opacity={0.16}/><LineBox position={[0,2.08,0.2]} scale={[6.4,0.035,0.035]} color="#101721" edge={SOFT_EDGE} opacity={0.42}/>{[-2.2,-0.9,0.4,1.7].map(x => <group key={x} position={[x,1.78,0.2]}><mesh position={[0,-0.06,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[0.08,0.006,8,24]} /><meshBasicMaterial color={SOFT_EDGE} transparent opacity={0.42} /></mesh></group>)}<StandingPerson time={0} position={[-1.9,0,-0.45]} opacity={0.38}/><StandingPerson time={0} position={[1.75,0,-0.55]} opacity={0.32}/></group> }
-function TransitSet({ time }: { time: number }) { return <group><SubwayCar/><StandingPerson time={time} position={[0,0,0.18]}/></group> }
-function StaticCameraLookAt({ position, look, zoom }: { position: Vec3; look: Vec3; zoom: number }) {
-  const { camera } = useThree()
-  useEffect(() => {
-    camera.position.set(...position)
-    camera.zoom = zoom
-    camera.lookAt(...look)
-    camera.updateProjectionMatrix()
-  }, [camera, look, position, zoom])
-  return null
+export function TransitHandoffExperience() {
+  return <ScriptedSceneExperience config={config} />
 }
-function AnimatedScene({ time }: { time: number }) {
-  const cameraTarget: Vec3 = [0, 1.18, 0.15]
-  const cameraPosition: Vec3 = [2.6, 2.1, 3.15]
-  return <><color attach="background" args={['#05080d']} /><fog attach="fog" args={['#05080d',5.6,11.5]} /><OrthographicCamera makeDefault position={cameraPosition} zoom={122}/><StaticCameraLookAt position={cameraPosition} look={cameraTarget} zoom={122}/><ambientLight intensity={0.42}/><hemisphereLight intensity={0.26} color="#d8e6ff" groundColor="#080604"/><directionalLight castShadow intensity={1.05} position={[4.2,6.8,4.6]} shadow-mapSize-width={2048} shadow-mapSize-height={2048}/><spotLight castShadow intensity={6.2} angle={0.46} penumbra={0.84} position={[0.4,3.6,2.0]} color="#dcecff"/><pointLight intensity={0.9} distance={2.2} position={[BROOCH.x,BROOCH.y,BROOCH.z]} color={ACTIVE_BLUE}/><group rotation={[0,-0.06,0]}><TransitSet time={time}/></group><ContactShadows position={[0,0.02,0]} opacity={0.58} scale={9} blur={2.35} far={6} color="#000000"/><OrbitControls enabled enablePan={false} enableZoom enableRotate minZoom={45} maxZoom={220} target={cameraTarget}/></>
-}
-export function TransitHandoffExperience() { const time=useStoryClock(); return <section className="interior-shell" aria-label="地铁车厢跨工具任务交接三维静态场景"><Canvas shadows dpr={[1,2]}><Suspense fallback={null}><AnimatedScene time={time}/></Suspense></Canvas></section> }
+
 export default TransitHandoffExperience

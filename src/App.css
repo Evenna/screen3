@@ -1637,6 +1637,235 @@
   transition: opacity 520ms ease, transform 520ms ease;
 }
 
+/* ─── Open Office: S06 会议室救场 UI 系统 ─────────────────────────────────── */
+
+/* 工具扫描小卡片（扇形展开 5 个） */
+.open-office-tool-card {
+  width: 78px;
+  padding: 4px 5px 5px;
+  border-radius: 7px;
+  background:
+    linear-gradient(160deg, rgba(158, 216, 255, 0.08), transparent 55%),
+    rgba(3, 6, 11, 0.82);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.32),
+    inset 0 0 0 1px rgba(158, 216, 255, 0.18);
+  color: rgba(226, 239, 255, 0.82);
+  font-size: 5.5px;
+  line-height: 1.38;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+.open-office-tool-card strong {
+  display: block;
+  margin-bottom: 2px;
+  color: rgba(158, 216, 255, 1);
+  font-size: 5.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.open-office-tool-card span {
+  display: block;
+  color: rgba(208, 224, 244, 0.72);
+  font-size: 5px;
+}
+
+/* 对话气泡（dialog 模式，扩展 object-label） */
+.open-office-dialog {
+  width: 106px;
+}
+
+/* 设备状态标注（device-note 模式，扩展 object-label） */
+.open-office-device-note {
+  width: 90px;
+}
+
+/* 主作战卡 */
+.open-office-web-card {
+  width: 188px;
+  border-radius: 10px;
+  background:
+    linear-gradient(160deg, rgba(158, 216, 255, 0.07), transparent 42%),
+    rgba(4, 7, 13, 0.88);
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.42),
+    0 0 28px rgba(63, 115, 255, 0.12),
+    inset 0 0 0 1px rgba(158, 216, 255, 0.16);
+  color: rgba(226, 239, 255, 0.84);
+  font-size: 6px;
+  line-height: 1.38;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+
+.open-office-web-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 7px;
+  border-bottom: 1px solid rgba(158, 216, 255, 0.1);
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 4.5px;
+  letter-spacing: 0.1em;
+  color: rgba(158, 216, 255, 0.55);
+}
+.open-office-web-topbar i {
+  font-style: normal;
+  color: rgba(158, 216, 255, 0.32);
+}
+
+.open-office-web-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 5px 7px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.open-office-web-card header small {
+  display: block;
+  margin-bottom: 1px;
+  font-size: 4.5px;
+  letter-spacing: 0.12em;
+  color: rgba(158, 216, 255, 0.62);
+}
+.open-office-web-card header strong {
+  display: block;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(238, 245, 255, 0.96);
+  line-height: 1.25;
+}
+.open-office-web-card header em {
+  flex-shrink: 0;
+  margin-left: 4px;
+  margin-top: 1px;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: rgba(63, 115, 255, 0.22);
+  border: 1px solid rgba(63, 115, 255, 0.34);
+  color: rgba(158, 216, 255, 0.88);
+  font-style: normal;
+  font-size: 4.5px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.open-office-web-summary {
+  padding: 4px 7px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(63, 115, 255, 0.06);
+  font-size: 5.5px;
+}
+.open-office-web-summary b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 5px;
+  font-weight: 700;
+  color: rgba(158, 216, 255, 0.88);
+  letter-spacing: 0.1em;
+}
+.open-office-web-summary span {
+  color: rgba(214, 228, 246, 0.78);
+  line-height: 1.5;
+}
+
+.open-office-web-metrics {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.open-office-web-metrics span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 3px;
+  text-align: center;
+  font-size: 4.5px;
+  color: rgba(198, 216, 240, 0.62);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+.open-office-web-metrics span:last-child {
+  border-right: none;
+}
+.open-office-web-metrics b {
+  display: block;
+  margin-bottom: 1px;
+  font-size: 7px;
+  font-weight: 700;
+  color: rgba(158, 216, 255, 0.96);
+  letter-spacing: -0.01em;
+}
+
+.open-office-web-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.open-office-web-grid > div {
+  padding: 4px 6px 5px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+.open-office-web-grid > div:last-child {
+  border-right: none;
+}
+.open-office-web-grid h4 {
+  margin: 0 0 2px;
+  font-size: 5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(158, 216, 255, 0.82);
+}
+.open-office-web-grid ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.open-office-web-grid li {
+  padding: 1px 0;
+  font-size: 5px;
+  color: rgba(208, 222, 242, 0.72);
+  line-height: 1.45;
+}
+
+/* 通讯静默 toast（右下角） */
+.open-office-web-toast {
+  width: 108px;
+  padding: 5px 7px 6px;
+  border-radius: 8px;
+  background:
+    linear-gradient(160deg, rgba(63, 115, 255, 0.1), transparent 52%),
+    rgba(4, 7, 13, 0.86);
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.36),
+    inset 0 0 0 1px rgba(63, 115, 255, 0.22);
+  color: rgba(214, 228, 246, 0.78);
+  font-size: 5.5px;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+.open-office-web-toast strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 5.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(158, 216, 255, 0.96);
+}
+.open-office-web-toast span {
+  display: block;
+  font-size: 5px;
+  color: rgba(198, 216, 240, 0.66);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 .top-narration--park {
   top: 22px;
   width: min(430px, calc(100% - 96px));

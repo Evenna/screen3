@@ -71,7 +71,7 @@ const scenes = [
     path: '/transit-handoff',
     title: '跨工具任务交接',
     eyebrow: 'Scene 10',
-    description: '地铁通勤中从微信需求到项目排期、brief 草稿与日历邀请。',
+    description: '清晨家中厨房、李明站在岛台旁手持水杯刷手机，Evans 胸针微光，阳光从窗户洒入。',
     component: lazy(() => import('./scenes/transit-handoff').then((module) => ({ default: module.TransitHandoffExperience }))),
   },
   {

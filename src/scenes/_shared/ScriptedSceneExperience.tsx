@@ -5,6 +5,7 @@ import type { Mesh, Object3D } from 'three'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
+import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import '../../App.css'
 
 export type Vec3 = [number, number, number]
@@ -27,6 +28,8 @@ export type EnvironmentKind =
   | 'asset-hotel-care'
   | 'asset-quiet-window'
   | 'asset-cozy-study'
+  | 'asset-morning-kitchen'
+  | 'asset-subway'
 export type PoseKind = 'standing-phone' | 'seated-desk' | 'seated-sofa' | 'seated-sofa-reverse' | 'standing-child' | 'quiet-standing'
 
 export type SceneDialogue = {
@@ -72,6 +75,7 @@ export type ScriptedSceneConfig = {
   personPosition?: Vec3
   personRotation?: Vec3
   personScale?: number
+  personSrc?: string
   panels: ScenePanel[]
   dialogues: SceneDialogue[]
   routes: SceneRoute[]
@@ -135,6 +139,11 @@ export const ASSETS = {
   openSuitcase: `${MODEL_ASSET}open-suitcase.glb`,
   comfyChair: `${MODEL_ASSET}comfy-chair.glb`,
   singleSofaChair: `${MODEL_ASSET}single-sofa-chair.glb`,
+  subwayPerson: `${MODEL_ASSET}subway-person.glb`,
+  subwayWindow: `${MODEL_ASSET}subway-scene.glb`,
+  subwayCar: `${MODEL_ASSET}subway-car.glb`,
+  passengerCarriage: `${POLY}locomotive-passenger-carriage.glb`,
+  highSpeedWagon: `${POLY}high-speed-wagon.glb`,
 }
 
 function clamp01(value: number) { return Math.min(1, Math.max(0, value)) }
@@ -184,7 +193,10 @@ function styleImported(root: Object3D, tint = '#101721', edge = WHITE_EDGE, fill
     mesh.castShadow = true
     mesh.receiveShadow = true
     mesh.material = new THREE.MeshStandardMaterial({ color: tint, emissive: tint, emissiveIntensity: 0.01, roughness: 0.82, metalness: 0.02, transparent: true, opacity: fillOpacity })
-    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, threshold), new THREE.LineBasicMaterial({ color: edge, transparent: true, opacity: lineOpacity })))
+    const edgeGeom = threshold <= 2 ? new THREE.WireframeGeometry(mesh.geometry) : new THREE.EdgesGeometry(mesh.geometry, threshold)
+    const lines = new THREE.LineSegments(edgeGeom, new THREE.LineBasicMaterial({ color: edge, transparent: true, opacity: lineOpacity, depthTest: false }))
+    lines.renderOrder = 999
+    mesh.add(lines)
   })
 }
 function fitObject(root: Object3D, size = 1) {
@@ -201,7 +213,15 @@ function fitObject(root: Object3D, size = 1) {
 }
 function GltfModel({ src, position, rotation = [0, 0, 0], scale = 1, tint = '#101721', edge = WHITE_EDGE, opacity = 0.5, lineOpacity = 0.34, threshold = 42 }: { src: string; position: Vec3; rotation?: Vec3; scale?: number; tint?: string; edge?: string; opacity?: number; lineOpacity?: number; threshold?: number }) {
   const gltf = useLoader(GLTFLoader, src)
-  const object = useMemo(() => { const clone = gltf.scene.clone(true); fitObject(clone, scale); styleImported(clone, tint, edge, opacity, lineOpacity, threshold); return clone }, [edge, gltf.scene, lineOpacity, opacity, scale, threshold, tint])
+  const object = useMemo(() => {
+    const clone = skeletonClone(gltf.scene)
+    let hasSkinnedMesh = false
+    clone.traverse((c: any) => { if (c.isSkinnedMesh) hasSkinnedMesh = true })
+    if (hasSkinnedMesh) clone.rotation.set(-Math.PI / 2, 0, 0)
+    fitObject(clone, scale)
+    styleImported(clone, tint, edge, opacity, lineOpacity, threshold)
+    return clone
+  }, [edge, gltf.scene, lineOpacity, opacity, scale, threshold, tint])
   return <group position={position} rotation={rotation}><primitive object={object} /></group>
 }
 function ObjModel({ src, position, rotation = [0, 0, 0], scale = 1, tint = '#101721', edge = WHITE_EDGE, opacity = 0.5, lineOpacity = 0.34, threshold = 42 }: { src: string; position: Vec3; rotation?: Vec3; scale?: number; tint?: string; edge?: string; opacity?: number; lineOpacity?: number; threshold?: number }) {
@@ -213,17 +233,17 @@ export function Model({ src, ...props }: Parameters<typeof GltfModel>[0]) { retu
 
 function EvansBrooch({ time, warm = false }: { time: number; warm?: boolean }) { const color = new THREE.Color(ACTIVE_BLUE).lerp(new THREE.Color(WARM_GLOW), warm ? 0.72 : 0).getStyle(); return <group position={[BROOCH.x, BROOCH.y, BROOCH.z]} rotation={[Math.PI / 2, 0, 0]}><mesh><torusGeometry args={[0.05, 0.004, 10, 36]} /><meshBasicMaterial color={color} transparent opacity={0.76} /></mesh><mesh position={[0, 0, 0.006]}><sphereGeometry args={[0.027, 18, 12]} /><meshStandardMaterial color="#101722" emissive={color} emissiveIntensity={0.42 + pulse(time, 2.4) * 0.26} roughness={0.55} /></mesh></group> }
 
-function Person({ time, pose, broochMode = 'normal', position, rotation: rotationOverride, scale: scaleOverride }: { time: number; pose: PoseKind; broochMode?: ScriptedSceneConfig['broochMode']; position?: Vec3; rotation?: Vec3; scale?: number }) {
+function Person({ time, pose, broochMode = 'normal', position, rotation: rotationOverride, scale: scaleOverride, customSrc }: { time: number; pose: PoseKind; broochMode?: ScriptedSceneConfig['broochMode']; position?: Vec3; rotation?: Vec3; scale?: number; customSrc?: string }) {
   const showBrooch = broochMode === 'normal' || (broochMode === 'delayed' && time >= 30)
   const isSeated = pose === 'seated-desk' || pose === 'seated-sofa' || pose === 'seated-sofa-reverse'
-  const src = isSeated ? ASSETS.man : ASSETS.baseMale
+  const src = customSrc ?? (isSeated ? ASSETS.man : ASSETS.baseMale)
   const rotation: Vec3 = rotationOverride ?? (pose === 'seated-sofa-reverse' ? [0, Math.PI, 0] : isSeated ? [0, Math.PI / 2, 0] : [0, -0.1, 0])
   const scale = scaleOverride ?? (pose === 'standing-child' ? 0.78 : isSeated ? 1.3 : 1.52)
   const groupPos: Vec3 = position ?? (pose === 'standing-child' ? [0.42, 0, 0.22] : pose === 'seated-sofa-reverse' ? [0, 0.1, 0.22] : [0, 0, 0.18])
-  const personLineOpacity = isSeated ? 0.88 : 0.36
-  const personThreshold = isSeated ? 18 : 56
-  const personOpacity = isSeated ? 0.78 : 0.44
-  const personTint = isSeated ? '#3d5068' : '#101721'
+  const personLineOpacity = isSeated ? 0.88 : 0.42
+  const personThreshold = isSeated ? 18 : 1
+  const personOpacity = isSeated ? 0.78 : 0.38
+  const personTint = isSeated ? '#3d5068' : '#182a40'
   return <group position={groupPos}>
     <Model src={src} position={[0, 0, 0]} rotation={rotation} scale={scale} tint={personTint} opacity={personOpacity} lineOpacity={personLineOpacity} threshold={personThreshold} />
     {(pose === 'standing-phone' || pose === 'quiet-standing') && <LineBox position={[0.26, 0.78, 0.32]} scale={[0.11, 0.18, 0.018]} rotation={[0.15, 0.08, -0.14]} color="#06111f" edge={ACTIVE_BLUE} opacity={0.42} emissive={ACTIVE_BLUE} emissiveIntensity={0.08} />}
@@ -265,22 +285,29 @@ function Environment({ kind }: { kind: EnvironmentKind }) {
   </group>
   if (kind === 'home-study') return <group><RoomShell windowSide="back" /><Model src={ASSETS.bookcase} position={[-1.92, 0, -1.16]} scale={1.34} opacity={0.34} lineOpacity={0.28} edge={SOFT_EDGE} /><Model src={ASSETS.bookcase} position={[-2.66, 0, -1.02]} scale={1.0} opacity={0.28} lineOpacity={0.24} edge={SOFT_EDGE} /><Model src={ASSETS.desk} position={[0.18, 0.54, 0.02]} scale={1.58} opacity={0.48} lineOpacity={0.36} edge={WHITE_EDGE} /><Model src={ASSETS.chair} position={[0.0, 0.18, 0.72]} rotation={[0, Math.PI, 0]} scale={0.94} opacity={0.46} lineOpacity={0.34} /><Model src={ASSETS.computer} position={[0.28, 1.02, -0.42]} scale={0.56} opacity={0.48} lineOpacity={0.34} edge={ACTIVE_BLUE} /><Model src={ASSETS.keyboard} position={[0.06, 0.95, -0.02]} scale={0.38} opacity={0.42} lineOpacity={0.28} /><Model src={ASSETS.mug} position={[-0.3, 0.98, 0.08]} scale={0.22} opacity={0.46} lineOpacity={0.32} /><Model src={ASSETS.curtain} position={[1.74, 0.42, -2.12]} scale={1.36} opacity={0.34} lineOpacity={0.28} edge={SOFT_EDGE} /><Model src={ASSETS.curtain} position={[2.2, 0.42, -2.12]} scale={1.36} opacity={0.34} lineOpacity={0.28} edge={SOFT_EDGE} /><Model src={ASSETS.rug} position={[0.34, 0.03, 0.5]} rotation={[-Math.PI / 2, 0, 0]} scale={1.42} opacity={0.2} lineOpacity={0.18} edge={SOFT_EDGE} /><Model src={ASSETS.lamp} position={[1.62, 0, -0.62]} scale={1.08} opacity={0.36} lineOpacity={0.26} /></group>
   if (kind === 'asset-scene6') return <group>
-    <RoomShell windowSide="left" />
-    {[-2.2, -0.6, 1.0, 2.35].map((x) => <LineBox key={`scene6-lamp-${x}`} position={[x, 2.05, -0.35]} scale={[0.22, 0.08, 0.22]} color="#111722" edge={WHITE_EDGE} opacity={0.46} emissive="#f3f0df" emissiveIntensity={0.1} />)}
-    <Model src={ASSETS.stickyDesk} position={[-1.32, 0.94, 0.2]} rotation={[0, 0, 0]} scale={2.2} opacity={0.5} lineOpacity={0.66} edge={WHITE_EDGE} threshold={8} />
+    {/* 地板 */}
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.25]} receiveShadow><planeGeometry args={[9.0, 6.2]} /><meshStandardMaterial color="#05080d" roughness={0.86} /><Edges color={MUTED_EDGE} threshold={5} /></mesh>
+    {/* 后墙：加高到 3.8 */}
+    <LineBox position={[0, 1.9, -2.82]} scale={[9.0, 3.8, 0.08]} color="#060910" edge={MUTED_EDGE} opacity={0.28} />
+    {/* 左墙：加高到 3.6 */}
+    <LineBox position={[-4.38, 1.8, -0.28]} scale={[0.08, 3.6, 6.0]} color="#060910" edge={MUTED_EDGE} opacity={0.22} />
+    {/* 左侧窗户 */}
+    <LineBox position={[-4.3, 1.72, -0.35]} scale={[0.035, 1.05, 1.72]} color="#071421" edge={SOFT_EDGE} opacity={0.26} emissive={ACTIVE_BLUE} emissiveIntensity={0.028} />
+    {[-2.2, -0.6, 1.0, 2.35].map((x) => <LineBox key={`scene6-lamp-${x}`} position={[x, 2.55, -0.35]} scale={[0.22, 0.08, 0.22]} color="#111722" edge={WHITE_EDGE} opacity={0.46} emissive="#f3f0df" emissiveIntensity={0.1} />)}
+    <Model src={ASSETS.stickyDesk} position={[-1.32, 0.94, 0.2]} rotation={[0, 0, 0]} scale={2.2} opacity={0.4} lineOpacity={0.28} edge={SOFT_EDGE} threshold={10} />
     {[[-2.02, -0.18], [-0.62, -0.18], [-2.02, 0.62], [-0.62, 0.62]].map(([x, z]) => (
-      <LineBox key={`scene6-desk-leg-${x}-${z}`} position={[x, 0.49, z]} scale={[0.06, 0.98, 0.06]} color="#101721" edge={WHITE_EDGE} opacity={0.68} />
+      <LineBox key={`scene6-desk-leg-${x}-${z}`} position={[x, 0.49, z]} scale={[0.06, 0.98, 0.06]} color="#101721" edge={SOFT_EDGE} opacity={0.3} />
     ))}
     <Model src={ASSETS.seatedYoungMan} position={[0.3, 0, 0.7]} rotation={[0, -Math.PI / 2, 0]} scale={1.8} tint="#172231" opacity={0.62} lineOpacity={0.86} edge={WHITE_EDGE} threshold={8} />
-    <Model src={ASSETS.assetMonitor} position={[-0.3, 1.07, 0.38]} rotation={[0, Math.PI / 2, 0]} scale={0.78} opacity={0.58} lineOpacity={0.72} edge={ACTIVE_BLUE} threshold={8} />
-    <Model src={ASSETS.assetMonitor} position={[-1.72, 1.1, 0.5]} rotation={[0, Math.PI / 2, 0]} scale={0.52} opacity={0.56} lineOpacity={0.68} edge={ACTIVE_BLUE} threshold={8} />
-    <Model src={ASSETS.laptop} position={[-1.3, 1.12, 0.92]} rotation={[0, 0.45, 0]} scale={0.56} opacity={0.62} lineOpacity={0.82} edge={WHITE_EDGE} threshold={8} />
-    <Model src={ASSETS.assetKeyboard} position={[-1.07, 1.1, 0.55]} rotation={[0, -0.08, 0]} scale={0.35} opacity={0.5} lineOpacity={0.58} edge={WHITE_EDGE} threshold={8} />
-    <Model src={ASSETS.paper} position={[-0.82, 1.1, 0.7]} rotation={[0, -0.22, 0.04]} scale={0.3} opacity={0.54} lineOpacity={0.64} edge={WHITE_EDGE} threshold={7} />
-    <Model src={ASSETS.coffeeCup} position={[-1.62, 1.1, 0.6]} scale={0.13} opacity={0.5} lineOpacity={0.56} edge={WHITE_EDGE} threshold={8} />
-    <Model src={ASSETS.phone} position={[-1.87, 1.1, 0.7]} rotation={[0, 0.38, 0.1]} scale={0.15} opacity={0.5} lineOpacity={0.58} edge={ACTIVE_BLUE} threshold={7} />
-    <Model src={ASSETS.plant} position={[-2.4, 0, 0.4]} scale={1.0} opacity={0.42} lineOpacity={0.42} edge={SOFT_EDGE} threshold={12} />
-    <Model src={ASSETS.whiteboard} position={[2.2, 0, -1.5]} rotation={[0, -0.12, 0]} scale={1.8} opacity={0.42} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} />
+    <Model src={ASSETS.assetMonitor} position={[-0.3, 1.07, 0.38]} rotation={[0, Math.PI / 2, 0]} scale={0.78} opacity={0.52} lineOpacity={0.38} edge={ACTIVE_BLUE} threshold={14} />
+    <Model src={ASSETS.assetMonitor} position={[-1.72, 1.1, 0.5]} rotation={[0, Math.PI / 2, 0]} scale={0.52} opacity={0.48} lineOpacity={0.32} edge={ACTIVE_BLUE} threshold={14} />
+    <Model src={ASSETS.laptop} position={[-1.3, 1.12, 0.92]} rotation={[0, 0.45, 0]} scale={0.56} opacity={0.52} lineOpacity={0.30} edge={SOFT_EDGE} threshold={14} />
+    <Model src={ASSETS.assetKeyboard} position={[-1.07, 1.1, 0.55]} rotation={[0, -0.08, 0]} scale={0.35} opacity={0.44} lineOpacity={0.24} edge={SOFT_EDGE} threshold={14} />
+    <Model src={ASSETS.paper} position={[-0.82, 1.1, 0.7]} rotation={[0, -0.22, 0.04]} scale={0.3} opacity={0.46} lineOpacity={0.26} edge={SOFT_EDGE} threshold={12} />
+    <Model src={ASSETS.coffeeCup} position={[-1.62, 1.1, 0.6]} scale={0.13} opacity={0.44} lineOpacity={0.24} edge={SOFT_EDGE} threshold={12} />
+    <Model src={ASSETS.phone} position={[-1.87, 1.1, 0.7]} rotation={[0, 0.38, 0.1]} scale={0.15} opacity={0.44} lineOpacity={0.26} edge={ACTIVE_BLUE} threshold={12} />
+    <Model src={ASSETS.plant} position={[-2.4, 0, 0.4]} scale={1.0} opacity={0.36} lineOpacity={0.18} edge={MUTED_EDGE} threshold={16} />
+    <Model src={ASSETS.whiteboard} position={[2.2, 0, -1.5]} rotation={[0, -0.12, 0]} scale={1.8} opacity={0.36} lineOpacity={0.22} edge={SOFT_EDGE} threshold={14} />
   </group>
   if (kind === 'asset-late-work') return <group>
     <RoomShell windowSide="none" />
@@ -333,6 +360,56 @@ function Environment({ kind }: { kind: EnvironmentKind }) {
   if (kind === 'asset-anniversary-kitchen') return <group><RoomShell windowSide="left" /><Model src={ASSETS.kitchenIsland} position={[0.16, 0.68, 0.16]} scale={1.5} opacity={0.48} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.fridge} position={[-1.92, 0, -1.1]} rotation={[0, 0.18, 0]} scale={1.22} opacity={0.42} lineOpacity={0.46} edge={SOFT_EDGE} threshold={12} /><Model src={ASSETS.phone} position={[0.52, 1.02, 0.16]} rotation={[0, -0.22, 0.1]} scale={0.2} opacity={0.54} lineOpacity={0.58} edge={ACTIVE_BLUE} threshold={8} /><Model src={ASSETS.coffeeCup} position={[-0.34, 1.0, 0.22]} scale={0.18} opacity={0.46} lineOpacity={0.42} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.plant} position={[1.82, 0, -0.88]} scale={0.7} opacity={0.34} lineOpacity={0.34} edge={SOFT_EDGE} threshold={12} /></group>
   if (kind === 'asset-third-option-office') return <group><RoomShell /><LineBox position={[0, 1.72, -2.18]} scale={[3.6, 1.05, 0.035]} color="#071421" edge={MUTED_EDGE} opacity={0.22} emissive={ACTIVE_BLUE} emissiveIntensity={0.02} /><Model src={ASSETS.officeDesk} position={[-0.82, 0.54, 0.14]} rotation={[0, 0.18, 0]} scale={1.44} opacity={0.46} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.laptop} position={[-0.64, 1.0, -0.1]} rotation={[0, 0.34, 0]} scale={0.42} opacity={0.5} lineOpacity={0.52} edge={ACTIVE_BLUE} threshold={10} /><Model src={ASSETS.phone} position={[-0.18, 1.0, 0.26]} rotation={[0, -0.2, 0.12]} scale={0.18} opacity={0.54} lineOpacity={0.58} edge={ACTIVE_BLUE} threshold={8} /><Model src={ASSETS.whiteboard} position={[1.62, 1.22, -1.42]} rotation={[0, -0.34, 0]} scale={0.92} opacity={0.44} lineOpacity={0.48} edge={WHITE_EDGE} threshold={12} /><Model src={ASSETS.plant} position={[1.72, 0, 0.78]} scale={0.72} opacity={0.32} lineOpacity={0.34} edge={SOFT_EDGE} threshold={12} /></group>
   if (kind === 'asset-hotel-care') return <group><RoomShell windowSide="back" /><Model src={ASSETS.hotelBed} position={[-1.08, 0.18, 0.1]} rotation={[0, 0.2, 0]} scale={1.7} opacity={0.48} lineOpacity={0.54} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.nightstandLamp} position={[-2.18, 0.12, -0.86]} scale={0.78} opacity={0.42} lineOpacity={0.44} edge={WHITE_EDGE} threshold={12} /><Model src={ASSETS.openSuitcase} position={[1.28, 0.08, 0.68]} rotation={[0, -0.36, 0]} scale={1.0} opacity={0.44} lineOpacity={0.48} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.phone} position={[0.6, 0.7, 0.88]} rotation={[0, -0.2, 0.1]} scale={0.18} opacity={0.54} lineOpacity={0.58} edge={ACTIVE_BLUE} threshold={8} /><Model src={ASSETS.comfyChair} position={[1.66, 0.18, -0.48]} rotation={[0, -0.72, 0]} scale={0.86} opacity={0.36} lineOpacity={0.38} edge={SOFT_EDGE} threshold={12} /></group>
+  if (kind === 'asset-morning-kitchen') return <group>
+    <RoomShell windowSide="left" />
+    {/* 清晨阳光从左侧窗户洒入 */}
+    <LineBox position={[-3.52, 1.5, -0.35]} scale={[0.025, 0.72, 1.22]} color="#ffd49a" edge={WARM_GLOW} opacity={0.12} emissive={WARM_GLOW} emissiveIntensity={0.16} />
+    {/* 后墙操作台 z≈-2.2，描边最暗 */}
+    <LineBox position={[-0.7, 0.46, -2.22]} scale={[3.4, 0.92, 0.42]} color="#0e1520" edge="#2a323c" opacity={0.44} />
+    <LineBox position={[-0.7, 0.93, -2.18]} scale={[3.4, 0.05, 0.42]} color="#141c28" edge="#38424e" opacity={0.54} />
+    {/* 上方橱柜 z≈-2.28 */}
+    <LineBox position={[-0.7, 1.72, -2.28]} scale={[3.4, 0.62, 0.2]} color="#0c1320" edge="#222a34" opacity={0.36} />
+    {/* 冰箱 z≈-1.1 */}
+    <Model src={ASSETS.fridge} position={[-1.92, 0, -1.1]} rotation={[0, 0.18, 0]} scale={2.4} opacity={0.44} lineOpacity={0.30} edge={SOFT_EDGE} threshold={12} />
+    {/* 盆栽 z≈-0.88 */}
+    <Model src={ASSETS.plant} position={[1.82, 0, -0.88]} scale={0.7} opacity={0.34} lineOpacity={0.24} edge={SOFT_EDGE} threshold={10} />
+    {/* 落地灯 z≈-0.72 */}
+    <Model src={ASSETS.lamp} position={[3.42, 0, -0.72]} scale={1.06} opacity={0.34} lineOpacity={0.26} edge={SOFT_EDGE} />
+    {/* 岛台 z≈0.16 */}
+    <Model src={ASSETS.kitchenIsland} position={[0.16, 0, 0.16]} scale={2.2} opacity={0.48} lineOpacity={0.44} edge={WHITE_EDGE} threshold={10} />
+    {/* 岛台小物 z≈0.28 */}
+    <Model src={ASSETS.mug} position={[0.58, 0.85, 0.28]} scale={0.22} opacity={0.46} lineOpacity={0.46} edge={WHITE_EDGE} threshold={8} />
+    {/* 餐桌区 z≈1.28 */}
+    <Model src={ASSETS.table} position={[2.9, 0, 1.28]} scale={1.7} opacity={0.44} lineOpacity={0.52} edge={WHITE_EDGE} />
+    <Model src={ASSETS.paper} position={[2.9, 0.46, 1.28]} rotation={[0, 0.28, 0.04]} scale={0.22} opacity={0.4} lineOpacity={0.50} edge={WHITE_EDGE} threshold={8} />
+    <Model src={ASSETS.rug} position={[2.9, 0.03, 1.28]} rotation={[-Math.PI / 2, 0, 0]} scale={1.62} opacity={0.18} lineOpacity={0.14} edge={SOFT_EDGE} />
+    {/* 椅子侧方 z≈1.28 */}
+    <Model src={ASSETS.chair} position={[4.1, 0, 1.28]} rotation={[0, -Math.PI / 2, 0]} scale={1.05} opacity={0.42} lineOpacity={0.50} edge={WHITE_EDGE} />
+    {/* 椅子后方 z≈0.18 */}
+    <Model src={ASSETS.chair} position={[2.9, 0, 0.18]} rotation={[0, 0, 0]} scale={1.05} opacity={0.44} lineOpacity={0.50} edge={WHITE_EDGE} />
+    {/* 椅子前方 z≈2.38，描边最亮 */}
+    <Model src={ASSETS.chair} position={[2.9, 0, 2.38]} rotation={[0, Math.PI, 0]} scale={1.05} opacity={0.44} lineOpacity={0.58} edge={WHITE_EDGE} />
+  </group>
+  if (kind === 'asset-subway') return <group>
+    {/* 旅客车厢主体 */}
+    <Model src={ASSETS.subwayCar} position={[0, 0, 0]} scale={3.2} opacity={0.52} lineOpacity={0.38} edge={SOFT_EDGE} threshold={12} />
+    {/* 立杆扶手（人物身侧，叠在模型上做强调） */}
+    <LineBox position={[0.62, 1.12, 0.28]} scale={[0.04, 2.24, 0.04]} color="#1c2538" edge={SOFT_EDGE} opacity={0.82} />
+    {/* 顶部横杆 */}
+    <LineBox position={[0, 2.22, 0.24]} scale={[6.8, 0.04, 0.04]} color="#141c2e" edge={SOFT_EDGE} opacity={0.68} />
+    {/* 吊环 */}
+    {[-2.2, -1.1, 0.0, 1.1, 2.2].map((x) => (
+      <group key={`ring-${x}`}>
+        <LineBox position={[x, 1.94, 0.24]} scale={[0.02, 0.32, 0.02]} color="#141c2e" edge={MUTED_EDGE} opacity={0.54} />
+        <LineBox position={[x, 1.8, 0.24]} scale={[0.09, 0.05, 0.05]} color="#141c2e" edge={MUTED_EDGE} opacity={0.48} />
+      </group>
+    ))}
+    {/* 虚化背景人群 */}
+    <Model src={ASSETS.subwayPerson} position={[-1.9, 0, -0.6]} scale={1.5} opacity={0.15} lineOpacity={0.07} edge={MUTED_EDGE} threshold={10} />
+    <Model src={ASSETS.subwayPerson} position={[-0.8, 0, -0.9]} rotation={[0, 0.3, 0]} scale={1.42} opacity={0.11} lineOpacity={0.05} edge={MUTED_EDGE} threshold={10} />
+    <Model src={ASSETS.subwayPerson} position={[2.3, 0, -0.6]} rotation={[0, -0.2, 0]} scale={1.46} opacity={0.13} lineOpacity={0.06} edge={MUTED_EDGE} threshold={10} />
+    <Model src={ASSETS.subwayPerson} position={[1.5, 0, -1.0]} rotation={[0, 0.5, 0]} scale={1.38} opacity={0.09} lineOpacity={0.04} edge={MUTED_EDGE} threshold={10} />
+  </group>
   if (kind === 'asset-quiet-window') return <group><RoomShell windowSide="back" /><Model src={ASSETS.comfyChair} position={[0.04, 0.18, 0.34]} rotation={[0, -0.16, 0]} scale={1.08} opacity={0.42} lineOpacity={0.48} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.phone} position={[0.42, 0.88, 0.52]} rotation={[0, -0.28, 0.1]} scale={0.18} opacity={0.46} lineOpacity={0.52} edge={ACTIVE_BLUE} threshold={8} /><Model src={ASSETS.plant} position={[-1.68, 0, -0.88]} scale={0.78} opacity={0.32} lineOpacity={0.34} edge={SOFT_EDGE} threshold={12} /><Model src={ASSETS.assetLamp} position={[1.6, 0, -0.62]} scale={0.92} opacity={0.3} lineOpacity={0.32} edge={SOFT_EDGE} threshold={12} /><LineBox position={[1.2, 1.52, -2.26]} scale={[1.9, 1.0, 0.035]} color="#071421" edge={MUTED_EDGE} opacity={0.28} emissive={ACTIVE_BLUE} emissiveIntensity={0.018} /></group>
   return <group><RoomShell /><Model src={ASSETS.sofaSmall} position={[-0.95, 0.2, 0.18]} scale={1.1} opacity={0.38} lineOpacity={0.3} /><Model src={ASSETS.chair} position={[0.9, 0.16, 0.18]} rotation={[0, -0.55, 0]} scale={0.88} opacity={0.38} lineOpacity={0.3} /><Model src={ASSETS.table} position={[0, 0.5, 0.76]} scale={0.72} opacity={0.34} lineOpacity={0.26} /></group>
 }
@@ -341,20 +418,42 @@ function SegmentTube({ start, end, width, opacity, color }: { start: THREE.Vecto
 function AnimatedRoute({ route, time }: { route: SceneRoute; time: number }) { const end = new THREE.Vector3(...route.to); const points = useMemo(() => [BROOCH, route.via ? new THREE.Vector3(...route.via) : BROOCH.clone().lerp(end, 0.5).add(new THREE.Vector3(0, 0.35, 0)), end], [end, route.via]); const progress = clamp01((time - route.start) / (route.end - route.start)); const visibility = smoothStep(time, route.start, route.start + 0.35) * (1 - smoothStep(time, route.holdUntil, route.holdUntil + 0.65)); const lengths = useMemo(() => { let total = 0; const segments = points.slice(0, -1).map((p, i) => { const l = p.distanceTo(points[i + 1]); total += l; return l }); return { segments, total } }, [points]); const movingPoint = getPathPoint(points, progress); if (visibility <= 0.01 || progress <= 0.01 || lengths.total <= 0.001) return null; let drawn = progress * lengths.total; return <group>{points.slice(0, -1).map((p, i) => { const l = lengths.segments[i]; const amount = clamp01(drawn / l); drawn -= l; if (amount <= 0) return null; return <SegmentTube key={i} start={p} end={p.clone().lerp(points[i + 1], amount)} width={route.width ?? 0.005} opacity={0.08 + visibility * 0.55} color={route.color ?? ACTIVE_BLUE} /> })}<mesh position={[movingPoint.x, movingPoint.y, movingPoint.z]}><sphereGeometry args={[(route.width ?? 0.005) * 3.8, 14, 10]} /><meshBasicMaterial color={route.color ?? ACTIVE_BLUE} transparent opacity={0.58 + pulse(time, 8.5) * 0.32} /></mesh></group> }
 
 const SCENE6_TOOL_CARDS = [
-  { name: '邮件', body: '3 封 Q3 相关｜老板昨晚转发留存数据', position: [-1.18, 2.02, 0.02] as Vec3 },
-  { name: 'Slack', body: '#growth-q3｜47 条讨论｜留存占 31 条', position: [-0.58, 2.24, -0.02] as Vec3 },
-  { name: 'Notion', body: '找到 Q3 思路草稿 v0.3｜可转提纲', position: [0, 2.34, -0.04] as Vec3 },
-  { name: '飞书', body: 'Q2 留存复盘｜关键:第 3 天流失', position: [0.58, 2.24, -0.02] as Vec3 },
-  { name: '日历', body: '15:00 会议｜CEO + 小蕾 + 小冯', position: [1.18, 2.02, 0.02] as Vec3 },
+  { name: '邮件', body: '已扫描｜筛出 3 封 Q3 相关｜核心：老板昨晚转发的留存数据', position: [-1.18, 2.08, 0.02] as Vec3 },
+  { name: 'Slack', body: '已扫描 #growth-q3 频道｜本周 47 条｜核心：留存讨论占 31 条', position: [-0.56, 2.28, -0.02] as Vec3 },
+  { name: 'Notion', body: '已找到你 1 个月前的 Q3 思路草稿 v0.3｜未提交', position: [0.04, 2.38, -0.04] as Vec3 },
+  { name: '飞书', body: '已读取 Q2 留存复盘.pdf｜关键结论：新用户第 3 天流失', position: [0.64, 2.28, -0.02] as Vec3 },
+  { name: '日历', body: '确认 15:00 会议 · 与会者：CEO + 小蕾 + 小冯', position: [1.22, 2.08, 0.02] as Vec3 },
 ]
 
+const SCENE6_SCAN_VIAS: Vec3[] = [
+  [-0.52, 1.84, 0.18],
+  [-0.2, 1.92, 0.12],
+  [0.06, 1.98, 0.06],
+  [0.36, 1.9, 0.1],
+  [0.68, 1.8, 0.16],
+]
+
+const SCENE6_CONVERGE_VIAS: Vec3[] = [
+  [0.08, 2.18, 0.1],
+  [0.38, 2.24, 0.06],
+  [0.7, 2.3, 0.02],
+  [1.02, 2.2, 0.08],
+  [1.28, 2.0, 0.18],
+]
+
+const SCENE6_BATTLE_ANCHOR: Vec3 = [1.42, 1.54, 0.48]
+const SCENE6_MONITOR: Vec3 = [-0.3, 1.12, 0.38]
+
 function Scene6ToolCard({ name, body, position, time, index }: { name: string; body: string; position: Vec3; time: number; index: number }) {
-  const appear = 10.8 + index * 0.16
-  const opacity = visibilityBetween(time, appear, 15.0, 0.34)
-  const gather = smoothStep(time, 13.4, 15.0)
+  const appear = 11.2 + index * 0.16
+  const opacity = visibilityBetween(time, appear, 14.2, 0.42)
+  const gather = smoothStep(time, 13.2, 14.4)
   if (opacity <= 0.01) return null
-  return <Html position={position} center distanceFactor={7.4} transform sprite occlude={false} zIndexRange={[32, 0]}>
-    <div className="object-label object-label--action open-office-tool-card" style={{ opacity, transform: `translate3d(0, ${6 - opacity * 6 + gather * 8}px, 0) scale(${0.9 + opacity * 0.1 - gather * 0.08})` }}>
+  return <Html position={position} center distanceFactor={3.8} transform sprite occlude={false} zIndexRange={[32, 0]}>
+    <div className="object-label object-label--action open-office-tool-card" style={{
+      opacity,
+      transform: `translate3d(0, ${5 - opacity * 5 + gather * 12}px, 0) scale(${0.86 + opacity * 0.14 - gather * 0.12})`,
+    }}>
       <strong>{name}</strong>
       <span>{body}</span>
     </div>
@@ -362,10 +461,11 @@ function Scene6ToolCard({ name, body, position, time, index }: { name: string; b
 }
 
 function Scene6BattleCard({ time }: { time: number }) {
-  const opacity = smoothStep(time, 15.3, 16.2) * (time < 39.5 ? 1 : 1 - smoothStep(time, 39.5, 41.2))
+  // 29.5s 开始淡出，确保在静默 toast 30.0s 出现前让出右侧空间
+  const opacity = smoothStep(time, 20.2, 21.6) * (time < 29.5 ? 1 : 1 - smoothStep(time, 29.5, 31.0))
   if (opacity <= 0.01) return null
-  return <Html position={[1.78, 1.48, 0.56]} center distanceFactor={8.9} transform sprite occlude={false} zIndexRange={[42, 0]}>
-    <div className="open-office-web-card" style={{ opacity, transform: `translateY(${4 - opacity * 4}px) scale(${0.62 + opacity * 0.05})` }}>
+  return <Html position={SCENE6_BATTLE_ANCHOR} center distanceFactor={4.5} transform sprite occlude={false} zIndexRange={[42, 0]}>
+    <div className="open-office-web-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.7 + opacity * 0.06})` }}>
       <div className="open-office-web-topbar">
         <span>Evans Workspace / Q3 Growth Brief</span>
         <i>Auto-saved · 14:52</i>
@@ -378,33 +478,29 @@ function Scene6BattleCard({ time }: { time: number }) {
         <em>1 页速读</em>
       </header>
       <div className="open-office-web-summary">
-        <b>先说结论</b>
-        <span>老板最在意的是留存，不是拉新。开场 60 秒内先抛 3 个数，再给 3 个可执行杠杆。</span>
+        <b>老板最在意</b>
+        <span>留存 &gt; 拉新（来源：昨晚邮件第 3 封）。开场 60 秒内先抛 3 个数，再给 3 个可执行杠杆。</span>
       </div>
       <div className="open-office-web-metrics">
-        <span><b>48% -&gt; 41%</b>30 天留存下降 7pt</span>
+        <span><b>48% → 41%</b>30 天留存下降 7pt</span>
         <span><b>第 3 天</b>新用户流失最集中</span>
         <span><b>52%</b>同类基准，差距 11pt</span>
       </div>
-      <section className="open-office-web-section">
-        <h4>开场话术</h4>
-        <p>“我建议这次 Q3 先把重点放在留存修复。核心问题不是获客不够，而是新用户第 3 天掉得太快。”</p>
-      </section>
       <section className="open-office-web-grid">
         <div>
           <h4>三个杠杆</h4>
           <ul>
-            <li>onboarding 重设计：沿用你 Notion 草稿。</li>
-            <li>第 3 天召回：产品触达 + 推送 + EDM。</li>
-            <li>增长小组扩编：2 名前端 + 1 名设计。</li>
+            <li>① onboarding 重设计（你 Notion 已有思路）</li>
+            <li>② 第 3 天召回（产品 + 推送 + EDM）</li>
+            <li>③ 增长团队扩编（2 名前端 + 1 名设计）</li>
           </ul>
         </div>
         <div>
           <h4>注意</h4>
           <ul>
-            <li>前 3 分钟先抛结论。</li>
-            <li>别说“可能、也许、大概”。</li>
-            <li>老板上次打断你 3 次，原因是节奏慢。</li>
+            <li>前 3 分钟先抛结论再展开</li>
+            <li>别说“可能、也许、大概”</li>
+            <li>老板上次打断你 3 次，原因是节奏慢</li>
           </ul>
         </div>
       </section>
@@ -414,14 +510,15 @@ function Scene6BattleCard({ time }: { time: number }) {
 
 function Scene6DialogueLayer({ time }: { time: number }) {
   const entries = [
-    { start: 0.6, end: 4.4, kind: 'person', title: '李明', body: 'Evans，10 分钟后老板让我开会讨论 Q3 用户增长方案，我都没准备……完蛋了。', position: [0.58, 1.58, 0.82] as Vec3 },
-    { start: 4.6, end: 8.1, kind: 'voice', title: 'Evans', body: '别慌。我看了你今天所有相关的邮件、Slack、Notion 和上次会议记录，帮你整理好了。', position: [-0.48, 1.72, 0.82] as Vec3 },
-    { start: 8.3, end: 10.7, kind: 'voice', title: 'Evans', body: '剩下 8 分钟，你过一遍这三条就够了。我不会再打扰你。', position: [-0.48, 1.72, 0.82] as Vec3 },
+    { start: 0.6, end: 5.2, kind: 'person', title: '李明', body: 'Evans，10 分钟后老板让我开会讨论 Q3 用户增长方案，我都没准备……完蛋了。', position: [0.44, 1.56, 0.82] as Vec3 },
+    { start: 5.4, end: 9.8, kind: 'voice', title: 'Evans', body: '别慌。我看了你今天所有相关的邮件、Slack、Notion 和上次会议记录，帮你整理好了。', position: [-0.46, 1.72, 0.82] as Vec3 },
+    // 10.8s 结束，确保在工具卡 11.2s 出现前完全淡出，避免重叠
+    { start: 10.0, end: 10.8, kind: 'voice', title: 'Evans', body: '剩下 8 分钟，你过一遍这三条就够了。我不会再打扰你。', position: [-0.46, 1.72, 0.82] as Vec3 },
   ]
   return <>{entries.map((entry) => {
-    const opacity = visibilityBetween(time, entry.start, entry.end)
+    const opacity = visibilityBetween(time, entry.start, entry.end, 0.45)
     if (opacity <= 0.01) return null
-    return <Html key={entry.start} position={entry.position} center distanceFactor={7.8} transform sprite occlude={false} zIndexRange={[38, 0]}>
+    return <Html key={entry.start} position={entry.position} center distanceFactor={4.0} transform sprite occlude={false} zIndexRange={[38, 0]}>
       <div className={`object-label object-label--${entry.kind} open-office-dialog`} style={{ opacity, transform: `translateY(${8 - opacity * 8}px) scale(${0.94 + opacity * 0.06})` }}>
         <strong>{entry.title}</strong>
         <span>{entry.body}</span>
@@ -431,45 +528,68 @@ function Scene6DialogueLayer({ time }: { time: number }) {
 }
 
 function Scene6DeviceStatus({ time }: { time: number }) {
-  const monitorOpacity = visibilityBetween(time, 18.2, 23.0, 0.5)
-  const quietOpacity = visibilityBetween(time, 20.4, 25.8, 0.5)
-  return <>
-    {monitorOpacity > 0.01 && <Html position={[-0.62, 1.34, 0.5]} center distanceFactor={7.4} transform sprite occlude={false} zIndexRange={[36, 0]}>
-      <div className="object-label object-label--action object-label--right open-office-device-note" style={{ opacity: monitorOpacity }}>
-        <strong>显示器</strong>
-        作战卡已推送 · 1 页 · 预计阅读 5 分钟
-      </div>
-    </Html>}
-    {quietOpacity > 0.01 && <Html position={[1.34, 1.02, 0.86]} center distanceFactor={8.8} transform sprite occlude={false} zIndexRange={[34, 0]}>
-      <div className="open-office-web-toast" style={{ opacity: quietOpacity, transform: `translateY(${4 - quietOpacity * 4}px) scale(${0.9 + quietOpacity * 0.05})` }}>
-        <strong>通讯静默已开启</strong>
-        <span>Slack 勿扰至 16:00</span>
-        <span>日历静默通知 · 手机静音</span>
-      </div>
-    </Html>}
-  </>
+  // 28.5s 结束，确保在静默 toast 30.0s 出现前完全淡出，避免重叠
+  const monitorOpacity = visibilityBetween(time, 23.2, 28.5, 0.55)
+  if (monitorOpacity <= 0.01) return null
+  return <Html position={[-0.62, 1.38, 0.52]} center distanceFactor={3.8} transform sprite occlude={false} zIndexRange={[36, 0]}>
+    <div className="object-label object-label--action object-label--right open-office-device-note" style={{ opacity: monitorOpacity, transform: `translateY(${4 - monitorOpacity * 4}px)` }}>
+      <strong>显示器</strong>
+      作战卡已推送 · 1 页 · 预计阅读 5 分钟
+    </div>
+  </Html>
+}
+
+function Scene6QuietOverlay({ time }: { time: number }) {
+  const opacity = visibilityBetween(time, 30.0, 45.0, 0.6)
+  if (opacity <= 0.01) return null
+  return <Html position={[1.42, 0.86, 0.64]} center distanceFactor={4.5} transform sprite occlude={false} zIndexRange={[34, 0]}>
+    <div className="open-office-web-toast" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.88 + opacity * 0.06})` }}>
+      <strong>通讯静默已开启</strong>
+      <span>Slack 勿扰模式 · 持续至 16:00</span>
+      <span>日历静默通知 · 已开启</span>
+      <span>手机响铃 · 已切静音</span>
+    </div>
+  </Html>
 }
 
 function Scene6DispatchMotion({ time }: { time: number }) {
-  const monitor = useMemo(() => new THREE.Vector3(-0.3, 1.12, 0.38), [])
-  const webCardAnchor = useMemo(() => new THREE.Vector3(1.35, 1.46, 0.46), [])
   return <group>
-    {SCENE6_TOOL_CARDS.map((card, index) => {
-      const target = new THREE.Vector3(...card.position)
-      return <AnimatedRoute
-        key={`scene6-scan-${card.name}`}
-        route={{ to: [monitor.x, monitor.y, monitor.z], via: [target.x * 0.32, 1.72 + index * 0.025, 0.06], start: 10.7 + index * 0.14, end: 12.5 + index * 0.16, holdUntil: 15.8, color: ACTIVE_BLUE, width: 0.0048 }}
+    {/* Phase 1: 扫描 — BROOCH → 5 个工具卡（浅蓝细线，扇形展开） */}
+    {SCENE6_TOOL_CARDS.map((card, i) => (
+      <AnimatedRoute
+        key={`scan-${card.name}`}
+        route={{ to: card.position, via: SCENE6_SCAN_VIAS[i], start: 10.0 + i * 0.22, end: 12.0 + i * 0.22, holdUntil: 14.0, color: ACTIVE_BLUE, width: 0.0042 }}
         time={time}
       />
-    })}
-    <AnimatedRoute route={{ to: [monitor.x, monitor.y, monitor.z], via: [0.72, 1.4, 0.16], start: 16.6, end: 18.0, holdUntil: 21.2, color: MAIN_BLUE, width: 0.008 }} time={time} />
-    <AnimatedRoute route={{ to: SCENE6_TOOL_CARDS[1].position, via: [-0.46, 1.82, 0.2], start: 19.0, end: 20.0, holdUntil: 22.0, color: ACTIVE_BLUE, width: 0.0048 }} time={time} />
-    <AnimatedRoute route={{ to: SCENE6_TOOL_CARDS[4].position, via: [0.76, 1.82, 0.2], start: 19.4, end: 20.4, holdUntil: 22.2, color: ACTIVE_BLUE, width: 0.0048 }} time={time} />
-    <AnimatedRoute route={{ to: [webCardAnchor.x, webCardAnchor.y, webCardAnchor.z], via: [0.48, 1.76, 0.24], start: 13.6, end: 15.2, holdUntil: 17.2, color: MAIN_BLUE, width: 0.007 }} time={time} />
+    ))}
+    {/* Phase 2: 汇聚 — 5 条弧线 → 作战卡锚点（主蓝，宽度渐增） */}
+    {SCENE6_CONVERGE_VIAS.map((via, i) => (
+      <AnimatedRoute
+        key={`converge-${i}`}
+        route={{ to: SCENE6_BATTLE_ANCHOR, via, start: 14.8 + i * 0.2, end: 16.5 + i * 0.2, holdUntil: 18.0, color: MAIN_BLUE, width: 0.0055 + i * 0.0006 }}
+        time={time}
+      />
+    ))}
+    {/* Phase 3: 推送 — 作战卡 → 显示器（主蓝，粗线） */}
+    <AnimatedRoute
+      route={{ to: SCENE6_MONITOR, via: [0.56, 1.36, 0.42], start: 20.5, end: 22.5, holdUntil: 26.0, color: MAIN_BLUE, width: 0.009 }}
+      time={time}
+    />
+    {/* Phase 4: 静默设置 — BROOCH → Slack（浅蓝） */}
+    <AnimatedRoute
+      route={{ to: SCENE6_TOOL_CARDS[1].position, via: [-0.22, 1.92, 0.14], start: 27.0, end: 28.8, holdUntil: 31.5, color: ACTIVE_BLUE, width: 0.0042 }}
+      time={time}
+    />
+    {/* Phase 4: 静默设置 — BROOCH → 日历（浅蓝） */}
+    <AnimatedRoute
+      route={{ to: SCENE6_TOOL_CARDS[4].position, via: [0.68, 1.84, 0.16], start: 27.7, end: 29.5, holdUntil: 32.2, color: ACTIVE_BLUE, width: 0.0042 }}
+      time={time}
+    />
     {SCENE6_TOOL_CARDS.map((card, index) => <Scene6ToolCard key={card.name} {...card} time={time} index={index} />)}
     <Scene6BattleCard time={time} />
     <Scene6DialogueLayer time={time} />
     <Scene6DeviceStatus time={time} />
+    <Scene6QuietOverlay time={time} />
   </group>
 }
 
@@ -583,15 +703,21 @@ function Scene7LateWorkMotion({ time }: { time: number }) {
 
 function Panels({ panels, time }: { panels: ScenePanel[]; time: number }) { return <>{panels.map(panel => { const opacity = visibilityBetween(time, panel.start, panel.end); if (opacity <= 0.01) return null; return <Html key={panel.id} position={panel.position} center distanceFactor={panel.variant === 'main' ? 8.8 : 8.2} transform sprite occlude={false} zIndexRange={[panel.variant === 'main' ? 42 : 38, 0]}><div className={`scripted-panel scripted-panel--${panel.variant ?? 'side'}`} style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.76 + opacity * 0.07})` }}><div className="scripted-panel-topbar"><span>{panel.title}</span>{panel.subtitle && <i>{panel.subtitle}</i>}</div>{panel.lines.map((line, index) => <p key={`${panel.id}-${index}`}>{line}</p>)}</div></Html> })}</> }
 function Dialogues({ dialogues, time }: { dialogues: SceneDialogue[]; time: number }) { return <>{dialogues.map(entry => { const opacity = visibilityBetween(time, entry.start, entry.end); if (opacity <= 0.01) return null; return <Html key={`${entry.title}-${entry.start}`} position={entry.position ?? [-0.46, entry.kind === 'person' ? 1.58 : 1.72, 0.86]} center distanceFactor={7.8} transform sprite occlude={false} zIndexRange={[39, 0]}><div className={`object-label object-label--${entry.kind} scripted-dialog`} style={{ opacity, transform: `translateY(${8 - opacity * 8}px) scale(${0.94 + opacity * 0.06})` }}><strong>{entry.title}</strong><span>{entry.body}</span></div></Html> })}</> }
-function SceneContent({ config, time }: { config: ScriptedSceneConfig; time: number }) { return <><Environment kind={config.environment} />{config.showPerson !== false && <Person time={time} pose={config.pose} broochMode={config.broochMode} position={config.personPosition} rotation={config.personRotation} scale={config.personScale} />}{!config.disableEnvironmentMotion && config.environment === 'asset-scene6' && <><EvansBrooch time={time} warm={time > 28} /><Scene6DispatchMotion time={time} /></>}{!config.disableEnvironmentMotion && config.environment === 'asset-late-work' && <Scene7LateWorkMotion time={time} />}<group>{config.routes.map((route, index) => <AnimatedRoute key={index} route={route} time={time} />)}<Panels panels={config.panels} time={time} /><Dialogues dialogues={config.dialogues} time={time} /></group></> }
+function SceneContent({ config, time }: { config: ScriptedSceneConfig; time: number }) { return <><Environment kind={config.environment} />{config.showPerson !== false && <Person time={time} pose={config.pose} broochMode={config.broochMode} position={config.personPosition} rotation={config.personRotation} scale={config.personScale} customSrc={config.personSrc} />}{!config.disableEnvironmentMotion && config.environment === 'asset-scene6' && <><EvansBrooch time={time} warm={time > 28} /><Scene6DispatchMotion time={time} /></>}{!config.disableEnvironmentMotion && config.environment === 'asset-late-work' && <Scene7LateWorkMotion time={time} />}<group>{config.routes.map((route, index) => <AnimatedRoute key={index} route={route} time={time} />)}<Panels panels={config.panels} time={time} /><Dialogues dialogues={config.dialogues} time={time} /></group></> }
 function AnimatedScene({ config, time }: { config: ScriptedSceneConfig; time: number }) {
-  const firstFrame = config.camera?.[0] ?? { position: new THREE.Vector3(2.55, 2.1, 3.1), look: new THREE.Vector3(0, 1.16, 0.18), zoom: 122, at: 0 }
+  const firstFrame = useMemo(
+    () => config.camera?.[0] ?? { position: new THREE.Vector3(2.55, 2.1, 3.1), look: new THREE.Vector3(0, 1.16, 0.18), zoom: 122, at: 0 },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [config.camera]
+  )
+  const camPos = useMemo(() => firstFrame.position.toArray() as [number, number, number], [firstFrame])
+  const lookArr = useMemo(() => firstFrame.look.toArray() as [number, number, number], [firstFrame])
   const controlsEnabled = config.enableOrbitControls === true
 
   return <>
     <color attach="background" args={['#05080d']} />
     <fog attach="fog" args={['#05080d', 5.6, 11.5]} />
-    <OrthographicCamera makeDefault position={firstFrame.position.toArray()} zoom={firstFrame.zoom} />
+    <OrthographicCamera makeDefault position={camPos} zoom={firstFrame.zoom} />
     {controlsEnabled ? <StaticCameraLookAt frame={firstFrame} /> : <CameraMotion time={time} cameraFrames={config.camera} />}
     <ambientLight intensity={0.42} />
     <hemisphereLight intensity={0.26} color="#d8e6ff" groundColor="#080604" />
@@ -607,7 +733,7 @@ function AnimatedScene({ config, time }: { config: ScriptedSceneConfig; time: nu
       enableRotate={controlsEnabled}
       minZoom={45}
       maxZoom={220}
-      target={firstFrame.look.toArray()}
+      target={lookArr}
     />
   </>
 }
