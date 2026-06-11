@@ -134,13 +134,18 @@
   text-transform: uppercase;
 }
 
-.scene-switcher {
+.scene-switcher-zone {
   position: fixed;
   top: 18px;
   left: 50%;
   z-index: 20;
+  transform: translateX(-50%);
+}
+
+.scene-switcher-shell {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 4px;
   padding: 6px;
   border: 1px solid rgba(226, 235, 248, 0.1);
   border-radius: 999px;
@@ -149,22 +154,108 @@
     0 14px 34px rgba(0, 0, 0, 0.32),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(12px);
-  transform: translateX(-50%);
+  transition:
+    padding 280ms cubic-bezier(0.2, 0.76, 0.2, 1),
+    gap 280ms cubic-bezier(0.2, 0.76, 0.2, 1),
+    box-shadow 280ms ease;
+}
+
+.scene-switcher-zone.is-collapsed .scene-switcher-shell {
+  gap: 0;
+  padding: 4px;
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.scene-switcher {
+  display: flex;
+  gap: 8px;
+  max-width: min(92vw, 1180px);
+  overflow: auto;
+  scrollbar-width: none;
+  transition:
+    opacity 260ms ease,
+    max-width 320ms cubic-bezier(0.2, 0.76, 0.2, 1),
+    transform 280ms cubic-bezier(0.2, 0.76, 0.2, 1);
+}
+
+.scene-switcher::-webkit-scrollbar {
+  display: none;
+}
+
+.scene-switcher-zone.is-collapsed .scene-switcher {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(8px);
+  pointer-events: none;
 }
 
 .scene-switcher a {
+  flex: 0 0 auto;
   padding: 7px 12px;
   border-radius: 999px;
   color: rgba(239, 246, 255, 0.78);
   font-size: 12px;
   letter-spacing: 0.08em;
   text-decoration: none;
+  white-space: nowrap;
   transition: background 200ms ease, color 200ms ease;
+}
+
+.scene-switcher a span {
+  margin-right: 4px;
+  color: rgba(158, 216, 255, 0.62);
+  font-size: 10px;
+  letter-spacing: 0.12em;
 }
 
 .scene-switcher a:hover {
   background: rgba(158, 216, 255, 0.12);
   color: rgba(246, 250, 255, 0.96);
+}
+
+.scene-switcher a.is-active {
+  background: rgba(158, 216, 255, 0.16);
+  color: rgba(246, 250, 255, 0.98);
+  box-shadow: inset 0 0 0 1px rgba(158, 216, 255, 0.22);
+}
+
+.scene-switcher-toggle {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(158, 216, 255, 0.08);
+  color: rgba(158, 216, 255, 0.9);
+  cursor: pointer;
+  transition: background 200ms ease, transform 200ms ease;
+}
+
+.scene-switcher-toggle:hover {
+  background: rgba(158, 216, 255, 0.16);
+}
+
+.scene-switcher-toggle:focus-visible {
+  outline: 2px solid rgba(158, 216, 255, 0.72);
+  outline-offset: 2px;
+}
+
+.scene-switcher-caret {
+  width: 0;
+  height: 0;
+  border-top: 6px solid rgba(158, 216, 255, 0.9);
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  transition: transform 260ms cubic-bezier(0.2, 0.76, 0.2, 1);
+}
+
+.scene-switcher-zone:not(.is-collapsed) .scene-switcher-caret {
+  transform: rotate(180deg);
 }
 
 .plan-room-label {
@@ -1864,6 +1955,591 @@
   color: rgba(198, 216, 240, 0.66);
 }
 
+/* ─── Scripted Scenes: S11-S15 通用浮层 ─────────────────────────────────── */
+.scripted-panel {
+  width: 132px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  background:
+    linear-gradient(160deg, rgba(158, 216, 255, 0.08), transparent 54%),
+    rgba(4, 7, 13, 0.88);
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.38),
+    0 0 22px rgba(63, 115, 255, 0.08),
+    inset 0 0 0 1px rgba(158, 216, 255, 0.17);
+  color: rgba(214, 228, 246, 0.8);
+  font-size: 5.2px;
+  line-height: 1.42;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.scripted-panel--main {
+  width: 196px;
+  padding: 7px 9px;
+  background:
+    linear-gradient(160deg, rgba(63, 115, 255, 0.11), transparent 46%),
+    rgba(4, 7, 13, 0.91);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.44),
+    0 0 28px rgba(63, 115, 255, 0.13),
+    inset 0 0 0 1px rgba(158, 216, 255, 0.2);
+}
+
+.scripted-panel--mini {
+  width: 118px;
+  padding: 5px 7px;
+  border-radius: 8px;
+  opacity: 0.92;
+}
+
+.scripted-panel--warm {
+  width: 204px;
+  background:
+    linear-gradient(160deg, rgba(255, 212, 154, 0.11), transparent 50%),
+    rgba(9, 8, 7, 0.9);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(255, 212, 154, 0.18);
+}
+
+.scripted-panel-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin: -1px -1px 5px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(158, 216, 255, 0.1);
+}
+
+.scripted-panel-topbar span,
+.scripted-panel-topbar i,
+.scripted-panel p {
+  display: block;
+}
+
+.scripted-panel-topbar span {
+  color: rgba(158, 216, 255, 0.96);
+  font-size: 5.6px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+}
+
+.scripted-panel-topbar i {
+  max-width: 72px;
+  color: rgba(158, 216, 255, 0.44);
+  font-size: 4.5px;
+  font-style: normal;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.scripted-panel--warm .scripted-panel-topbar {
+  border-bottom-color: rgba(255, 212, 154, 0.13);
+}
+
+.scripted-panel--warm .scripted-panel-topbar span {
+  color: rgba(255, 224, 183, 0.96);
+}
+
+.scripted-panel--warm .scripted-panel-topbar i {
+  color: rgba(255, 224, 183, 0.45);
+}
+
+.scripted-panel p {
+  margin: 3px 0 0;
+  color: rgba(210, 225, 245, 0.76);
+}
+
+.scripted-panel--main p {
+  color: rgba(224, 236, 250, 0.82);
+}
+
+.scripted-panel--warm p {
+  color: rgba(246, 235, 220, 0.82);
+}
+
+/* ─── S08 信息过滤 UI ───────────────────────────────────────────────────── */
+.info-filter-dialog {
+  width: 122px;
+}
+
+.info-filter-scan-card {
+  width: 78px;
+}
+
+.info-filter-main-card {
+  width: 214px;
+  border-radius: 10px;
+  background:
+    linear-gradient(160deg, rgba(63, 115, 255, 0.1), transparent 44%),
+    rgba(4, 7, 13, 0.9);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.44),
+    0 0 28px rgba(63, 115, 255, 0.14),
+    inset 0 0 0 1px rgba(158, 216, 255, 0.18);
+  color: rgba(226, 239, 255, 0.86);
+  font-size: 5.2px;
+  line-height: 1.36;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+
+.info-filter-card-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 7px;
+  border-bottom: 1px solid rgba(158, 216, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(158, 216, 255, 0.78);
+  font-size: 4.6px;
+  letter-spacing: 0.1em;
+}
+
+.info-filter-card-topbar i {
+  color: rgba(158, 216, 255, 0.4);
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.info-filter-main-card section {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.info-filter-main-card article {
+  padding: 4px 7px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.info-filter-main-card article:last-child {
+  border-bottom: none;
+}
+
+.info-filter-main-card b,
+.info-filter-side-card strong,
+.info-filter-calendar-card strong {
+  display: block;
+  margin-bottom: 2px;
+  color: rgba(158, 216, 255, 0.96);
+  font-size: 5.4px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.info-filter-main-card span,
+.info-filter-main-card em {
+  display: block;
+  color: rgba(210, 225, 245, 0.74);
+  font-style: normal;
+}
+
+.info-filter-main-card em {
+  color: rgba(239, 246, 255, 0.82);
+}
+
+.info-filter-side-card,
+.info-filter-calendar-card {
+  width: 122px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  background:
+    linear-gradient(160deg, rgba(158, 216, 255, 0.08), transparent 52%),
+    rgba(4, 7, 13, 0.86);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 1px rgba(158, 216, 255, 0.16);
+  color: rgba(214, 228, 246, 0.8);
+  font-size: 5.2px;
+  line-height: 1.46;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.info-filter-side-card span,
+.info-filter-side-card em,
+.info-filter-calendar-card p,
+.info-filter-calendar-card em {
+  display: block;
+  margin: 0;
+  color: rgba(208, 224, 244, 0.72);
+  font-style: normal;
+}
+
+.info-filter-side-card em,
+.info-filter-calendar-card em {
+  margin-top: 3px;
+  color: rgba(158, 216, 255, 0.74);
+}
+
+.info-filter-calendar-slot {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 0;
+  padding: 4px 5px;
+  border: 1px solid rgba(63, 115, 255, 0.32);
+  border-radius: 6px;
+  background: rgba(63, 115, 255, 0.18);
+}
+
+.info-filter-calendar-slot b,
+.info-filter-calendar-slot span {
+  color: rgba(239, 246, 255, 0.94);
+  font-size: 5px;
+  line-height: 1.2;
+}
+
+/* ─── S09 决策副驾 UI ───────────────────────────────────────────────────── */
+.decision-dialog {
+  width: 124px;
+}
+
+.decision-profile-card,
+.decision-relation-card,
+.decision-history-card {
+  width: 138px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  background:
+    linear-gradient(160deg, rgba(158, 216, 255, 0.08), transparent 52%),
+    rgba(4, 7, 13, 0.88);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 1px rgba(158, 216, 255, 0.16);
+  color: rgba(214, 228, 246, 0.8);
+  font-size: 5.2px;
+  line-height: 1.44;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.decision-profile-card strong,
+.decision-relation-card strong,
+.decision-history-card strong {
+  display: block;
+  margin-bottom: 4px;
+  color: rgba(158, 216, 255, 0.96);
+  font-size: 5.6px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.decision-profile-card span,
+.decision-profile-card em,
+.decision-history-card span,
+.decision-history-card em {
+  display: block;
+  color: rgba(208, 224, 244, 0.74);
+  font-style: normal;
+}
+
+.decision-profile-card em,
+.decision-history-card em {
+  margin-top: 3px;
+  color: rgba(239, 246, 255, 0.84);
+}
+
+.decision-network-core {
+  width: 32px;
+  margin: 0 auto 4px;
+  padding: 2px 0;
+  border: 1px solid rgba(158, 216, 255, 0.32);
+  border-radius: 999px;
+  color: rgba(239, 246, 255, 0.96);
+  text-align: center;
+  font-size: 5px;
+  background: rgba(63, 115, 255, 0.16);
+}
+
+.decision-network-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 20px;
+  gap: 4px;
+  align-items: center;
+  margin: 3px 0 0;
+}
+
+.decision-network-row b,
+.decision-network-row span {
+  color: rgba(214, 228, 246, 0.78);
+  font-size: 4.8px;
+  font-weight: 600;
+}
+
+.decision-network-row i {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(121, 219, 154, 0.68);
+}
+
+.decision-network-row--warm i {
+  background: rgba(244, 179, 96, 0.76);
+}
+
+.decision-simulator-card {
+  width: 226px;
+  border-radius: 10px;
+  background:
+    linear-gradient(160deg, rgba(63, 115, 255, 0.1), transparent 44%),
+    rgba(4, 7, 13, 0.9);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.44),
+    0 0 28px rgba(63, 115, 255, 0.14),
+    inset 0 0 0 1px rgba(158, 216, 255, 0.18);
+  color: rgba(226, 239, 255, 0.86);
+  font-size: 5.2px;
+  line-height: 1.38;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+
+.decision-card-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 7px;
+  border-bottom: 1px solid rgba(158, 216, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(158, 216, 255, 0.78);
+  font-size: 4.6px;
+  letter-spacing: 0.1em;
+}
+
+.decision-card-topbar i {
+  color: rgba(158, 216, 255, 0.4);
+  font-style: normal;
+}
+
+.decision-simulator-card section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.decision-simulator-card article {
+  padding: 6px 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.decision-simulator-card article:last-child {
+  border-right: none;
+}
+
+.decision-simulator-card b,
+.decision-simulator-card span,
+.decision-simulator-card em {
+  display: block;
+}
+
+.decision-simulator-card b {
+  margin-bottom: 3px;
+  color: rgba(158, 216, 255, 0.96);
+  font-size: 5.6px;
+  font-weight: 700;
+}
+
+.decision-simulator-card span {
+  color: rgba(210, 225, 245, 0.76);
+}
+
+.decision-simulator-card em {
+  margin-top: 3px;
+  color: rgba(239, 246, 255, 0.92);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.decision-history-card {
+  width: 176px;
+}
+
+.decision-ownership-card {
+  width: 150px;
+  padding: 5px 8px;
+  border: 1px solid rgba(158, 216, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(4, 7, 13, 0.88);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  color: rgba(239, 246, 255, 0.92);
+  font-size: 5.4px;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  text-align: center;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+/* ─── S07 深夜加班 UI：分阶段展示，避免文字叠压 ─────────────────────────── */
+.late-work-dialog {
+  width: 118px;
+}
+
+.late-work-data-card,
+.late-work-arrange-card {
+  width: 178px;
+  border-radius: 10px;
+  background:
+    linear-gradient(160deg, rgba(158, 216, 255, 0.08), transparent 46%),
+    rgba(4, 7, 13, 0.88);
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.42),
+    0 0 24px rgba(63, 115, 255, 0.12),
+    inset 0 0 0 1px rgba(158, 216, 255, 0.16);
+  color: rgba(226, 239, 255, 0.84);
+  font-size: 5.6px;
+  line-height: 1.42;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+
+.late-work-card-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 7px;
+  border-bottom: 1px solid rgba(158, 216, 255, 0.11);
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(158, 216, 255, 0.72);
+  font-size: 4.6px;
+  letter-spacing: 0.1em;
+}
+
+.late-work-card-topbar span,
+.late-work-card-topbar i {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.late-work-card-topbar i {
+  color: rgba(158, 216, 255, 0.36);
+  font-style: normal;
+}
+
+.late-work-metric-list,
+.late-work-positive-list {
+  margin: 0;
+  padding: 5px 7px;
+}
+
+.late-work-metric-list {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.late-work-metric-list p,
+.late-work-positive-list p {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.late-work-metric-list b,
+.late-work-positive-list b,
+.late-work-action-row b {
+  color: rgba(158, 216, 255, 0.82);
+  font-size: 5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.late-work-metric-list strong {
+  color: rgba(239, 246, 255, 0.96);
+  font-size: 6.4px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.late-work-positive-list {
+  display: grid;
+  gap: 4px;
+  background: rgba(63, 115, 255, 0.06);
+}
+
+.late-work-positive-list span,
+.late-work-action-row span {
+  color: rgba(208, 224, 244, 0.74);
+}
+
+.late-work-arrange-card {
+  width: 184px;
+}
+
+.late-work-action-row {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 5px 7px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.late-work-action-row:last-child {
+  border-bottom: none;
+}
+
+.late-work-action-row span {
+  line-height: 1.45;
+}
+
+.late-work-device-note {
+  width: 104px;
+}
+
+.late-work-sleep-pill {
+  width: 118px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 179, 96, 0.2);
+  background:
+    linear-gradient(90deg, rgba(244, 179, 96, 0.12), rgba(158, 216, 255, 0.08)),
+    rgba(5, 7, 12, 0.84);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.36),
+    0 0 18px rgba(244, 179, 96, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  color: rgba(239, 246, 255, 0.9);
+  font-size: 5.4px;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.late-work-sleep-pill strong,
+.late-work-sleep-pill span {
+  display: block;
+}
+
+.late-work-sleep-pill strong {
+  color: rgba(255, 215, 163, 0.96);
+  font-size: 5.8px;
+  letter-spacing: 0.1em;
+}
+
+.late-work-sleep-pill span {
+  color: rgba(222, 232, 246, 0.72);
+  font-size: 5px;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 .top-narration--park {
@@ -2633,14 +3309,16 @@
     border-radius: 22px;
   }
 
-  .scene-switcher {
+  .scene-switcher-zone {
     top: 10px;
     max-width: calc(100vw - 24px);
-    overflow: auto;
+  }
+
+  .scene-switcher {
+    max-width: calc(100vw - 56px);
   }
 
   .scene-switcher a {
-    flex: 0 0 auto;
     padding: 6px 10px;
     font-size: 11px;
   }

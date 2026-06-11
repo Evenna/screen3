@@ -3,7 +3,7 @@ import { ScriptedSceneExperience, type ScriptedSceneConfig } from '../_shared/Sc
 
 const config: ScriptedSceneConfig = {
   ariaLabel: '宿舍上床下桌信息过滤三维场景',
-  duration: 36,
+  duration: 44,
   environment: 'dorm-loft',
   pose: 'seated-desk',
   showPerson: false,
@@ -11,10 +11,12 @@ const config: ScriptedSceneConfig = {
   panels: [],
   routes: [],
   camera: [
-    { at: 0, position: new THREE.Vector3(2.58, 2.18, 2.7), look: new THREE.Vector3(1.12, 1.04, 0.92), zoom: 148 },
-    { at: 7, position: new THREE.Vector3(2.02, 1.92, 2.18), look: new THREE.Vector3(1.18, 1.02, 0.98), zoom: 168 },
-    { at: 18, position: new THREE.Vector3(2.34, 2.12, 2.44), look: new THREE.Vector3(1.08, 1.12, 0.86), zoom: 156 },
-    { at: 35.8, position: new THREE.Vector3(2.12, 1.96, 2.26), look: new THREE.Vector3(1.14, 0.98, 0.94), zoom: 164 },
+    { at: 0, position: new THREE.Vector3(2.5, 1.84, 2.58), look: new THREE.Vector3(0.54, 0.96, 0.64), zoom: 134 },
+    { at: 6.5, position: new THREE.Vector3(2.18, 1.76, 2.34), look: new THREE.Vector3(0.08, 1.36, 0.62), zoom: 146 },
+    { at: 12, position: new THREE.Vector3(2.08, 1.64, 2.22), look: new THREE.Vector3(0.1, 1.22, 0.7), zoom: 152 },
+    { at: 23.5, position: new THREE.Vector3(2.16, 1.52, 2.16), look: new THREE.Vector3(0.78, 1.0, 0.78), zoom: 150 },
+    { at: 30, position: new THREE.Vector3(2.16, 1.56, 2.22), look: new THREE.Vector3(-0.7, 1.0, 0.78), zoom: 148 },
+    { at: 39, position: new THREE.Vector3(2.42, 1.78, 2.5), look: new THREE.Vector3(0.2, 1.08, 0.64), zoom: 136 },
   ],
 }
 

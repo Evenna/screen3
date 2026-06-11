@@ -89,15 +89,17 @@ export const WHITE_EDGE = '#ffffff'
 export const SOFT_EDGE = '#77818f'
 export const MUTED_EDGE = '#46515e'
 const BROOCH = new THREE.Vector3(0.03, 1.22, 0.38)
-const POLY = '/models/poly-pizza/'
-const MODEL_ASSET = '/models/user-provided/model-assets/'
+const PUBLIC_BASE = import.meta.env.BASE_URL.replace(/\/+$/, '')
+const publicAsset = (path: string) => `${PUBLIC_BASE}${path.startsWith('/') ? path : `/${path}`}`
+const POLY = publicAsset('/models/poly-pizza/')
+const MODEL_ASSET = publicAsset('/models/user-provided/model-assets/')
 export const ASSETS = {
-  man: '/models/sitting-man/tripo_convert_32d5344d-740d-4b6c-8fca-9a3c4bb1bd55.obj',
-  baseMale: '/models/base-male.glb',
+  man: publicAsset('/models/sitting-man/tripo_convert_32d5344d-740d-4b6c-8fca-9a3c4bb1bd55.obj'),
+  baseMale: publicAsset('/models/base-male.glb'),
   desk: `${POLY}desk.glb`,
   chair: `${POLY}chair.glb`,
   bedTwin: `${POLY}bed-twin.glb`,
-  bunkBed: '/models/user-provided/dorm-loft-bed.glb',
+  bunkBed: publicAsset('/models/user-provided/dorm-loft-bed.glb'),
   bedDouble: `${POLY}bed-double.glb`,
   nightStand: `${POLY}night-stand.glb`,
   closet: `${POLY}closet.glb`,
@@ -109,13 +111,13 @@ export const ASSETS = {
   armchair: `${POLY}armchair.glb`,
   curtain: `${POLY}curtain.glb`,
   rug: `${POLY}rug-square.glb`,
-  sofa: '/models/quaternius-furniture/sofa.glb',
-  sofaSmall: '/models/quaternius-furniture/sofa-small.glb',
-  table: '/models/quaternius-furniture/round-table-small.glb',
-  lamp: '/models/quaternius-furniture/lamp-round-floor.glb',
-  computer: '/models/open-office/computer-screen.glb',
-  keyboard: '/models/open-office/keyboard.glb',
-  mug: '/models/open-office/mug.glb',
+  sofa: publicAsset('/models/quaternius-furniture/sofa.glb'),
+  sofaSmall: publicAsset('/models/quaternius-furniture/sofa-small.glb'),
+  table: publicAsset('/models/quaternius-furniture/round-table-small.glb'),
+  lamp: publicAsset('/models/quaternius-furniture/lamp-round-floor.glb'),
+  computer: publicAsset('/models/open-office/computer-screen.glb'),
+  keyboard: publicAsset('/models/open-office/keyboard.glb'),
+  mug: publicAsset('/models/open-office/mug.glb'),
   assetDesk: `${MODEL_ASSET}desk.glb`,
   stickyDesk: `${MODEL_ASSET}sticky-desk.glb`,
   assetLamp: `${MODEL_ASSET}desk-lamp.glb`,
@@ -144,6 +146,18 @@ export const ASSETS = {
   subwayCar: `${MODEL_ASSET}subway-car.glb`,
   passengerCarriage: `${POLY}locomotive-passenger-carriage.glb`,
   highSpeedWagon: `${POLY}high-speed-wagon.glb`,
+}
+
+let sharedModelAssetsPreloaded = false
+export function preloadSharedModelAssets() {
+  if (sharedModelAssetsPreloaded) return
+  sharedModelAssetsPreloaded = true
+  Array.from(new Set(Object.values(ASSETS))).forEach((src, index) => {
+    globalThis.setTimeout(() => {
+      const loader = src.endsWith('.obj') ? OBJLoader : GLTFLoader
+      ;(useLoader as any).preload(loader, src)
+    }, index * 90)
+  })
 }
 
 function clamp01(value: number) { return Math.min(1, Math.max(0, value)) }
@@ -229,7 +243,10 @@ function ObjModel({ src, position, rotation = [0, 0, 0], scale = 1, tint = '#101
   const object = useMemo(() => { const clone = loaded.clone(true); fitObject(clone, scale); styleImported(clone, tint, edge, opacity, lineOpacity, threshold); return clone }, [edge, lineOpacity, loaded, opacity, scale, threshold, tint])
   return <group position={position} rotation={rotation}><primitive object={object} /></group>
 }
-export function Model({ src, ...props }: Parameters<typeof GltfModel>[0]) { return src.endsWith('.obj') ? <ObjModel src={src} {...props} /> : <GltfModel src={src} {...props} /> }
+export function Model({ src, ...props }: Parameters<typeof GltfModel>[0]) {
+  const inner = src.endsWith('.obj') ? <ObjModel src={src} {...props} /> : <GltfModel src={src} {...props} />
+  return <Suspense fallback={null}>{inner}</Suspense>
+}
 
 function EvansBrooch({ time, warm = false }: { time: number; warm?: boolean }) { const color = new THREE.Color(ACTIVE_BLUE).lerp(new THREE.Color(WARM_GLOW), warm ? 0.72 : 0).getStyle(); return <group position={[BROOCH.x, BROOCH.y, BROOCH.z]} rotation={[Math.PI / 2, 0, 0]}><mesh><torusGeometry args={[0.05, 0.004, 10, 36]} /><meshBasicMaterial color={color} transparent opacity={0.76} /></mesh><mesh position={[0, 0, 0.006]}><sphereGeometry args={[0.027, 18, 12]} /><meshStandardMaterial color="#101722" emissive={color} emissiveIntensity={0.42 + pulse(time, 2.4) * 0.26} roughness={0.55} /></mesh></group> }
 
@@ -293,59 +310,61 @@ function Environment({ kind }: { kind: EnvironmentKind }) {
     <LineBox position={[-4.38, 1.8, -0.28]} scale={[0.08, 3.6, 6.0]} color="#060910" edge={MUTED_EDGE} opacity={0.22} />
     {/* 左侧窗户 */}
     <LineBox position={[-4.3, 1.72, -0.35]} scale={[0.035, 1.05, 1.72]} color="#071421" edge={SOFT_EDGE} opacity={0.26} emissive={ACTIVE_BLUE} emissiveIntensity={0.028} />
-    {[-2.2, -0.6, 1.0, 2.35].map((x) => <LineBox key={`scene6-lamp-${x}`} position={[x, 2.55, -0.35]} scale={[0.22, 0.08, 0.22]} color="#111722" edge={WHITE_EDGE} opacity={0.46} emissive="#f3f0df" emissiveIntensity={0.1} />)}
-    <Model src={ASSETS.stickyDesk} position={[-1.32, 0.94, 0.2]} rotation={[0, 0, 0]} scale={2.2} opacity={0.4} lineOpacity={0.28} edge={SOFT_EDGE} threshold={10} />
+    {[-2.2, -0.6, 1.0, 2.35].map((x) => <LineBox key={`scene6-lamp-${x}`} position={[x, 2.55, -0.35]} scale={[0.22, 0.08, 0.22]} color="#111722" edge={SOFT_EDGE} opacity={0.3} emissive="#f3f0df" emissiveIntensity={0.045} />)}
+    <Model src={ASSETS.stickyDesk} position={[-1.32, 0.94, 0.2]} rotation={[0, 0, 0]} scale={2.2} opacity={0.54} lineOpacity={0.34} edge={SOFT_EDGE} threshold={18} />
     {[[-2.02, -0.18], [-0.62, -0.18], [-2.02, 0.62], [-0.62, 0.62]].map(([x, z]) => (
-      <LineBox key={`scene6-desk-leg-${x}-${z}`} position={[x, 0.49, z]} scale={[0.06, 0.98, 0.06]} color="#101721" edge={SOFT_EDGE} opacity={0.3} />
+      <LineBox key={`scene6-desk-leg-${x}-${z}`} position={[x, 0.49, z]} scale={[0.06, 0.98, 0.06]} color="#101721" edge={z > 0.4 ? WHITE_EDGE : MUTED_EDGE} opacity={z > 0.4 ? 0.62 : 0.28} />
     ))}
-    <Model src={ASSETS.seatedYoungMan} position={[0.3, 0, 0.7]} rotation={[0, -Math.PI / 2, 0]} scale={1.8} tint="#172231" opacity={0.62} lineOpacity={0.86} edge={WHITE_EDGE} threshold={8} />
-    <Model src={ASSETS.assetMonitor} position={[-0.3, 1.07, 0.38]} rotation={[0, Math.PI / 2, 0]} scale={0.78} opacity={0.52} lineOpacity={0.38} edge={ACTIVE_BLUE} threshold={14} />
-    <Model src={ASSETS.assetMonitor} position={[-1.72, 1.1, 0.5]} rotation={[0, Math.PI / 2, 0]} scale={0.52} opacity={0.48} lineOpacity={0.32} edge={ACTIVE_BLUE} threshold={14} />
-    <Model src={ASSETS.laptop} position={[-1.3, 1.12, 0.92]} rotation={[0, 0.45, 0]} scale={0.56} opacity={0.52} lineOpacity={0.30} edge={SOFT_EDGE} threshold={14} />
-    <Model src={ASSETS.assetKeyboard} position={[-1.07, 1.1, 0.55]} rotation={[0, -0.08, 0]} scale={0.35} opacity={0.44} lineOpacity={0.24} edge={SOFT_EDGE} threshold={14} />
-    <Model src={ASSETS.paper} position={[-0.82, 1.1, 0.7]} rotation={[0, -0.22, 0.04]} scale={0.3} opacity={0.46} lineOpacity={0.26} edge={SOFT_EDGE} threshold={12} />
-    <Model src={ASSETS.coffeeCup} position={[-1.62, 1.1, 0.6]} scale={0.13} opacity={0.44} lineOpacity={0.24} edge={SOFT_EDGE} threshold={12} />
-    <Model src={ASSETS.phone} position={[-1.87, 1.1, 0.7]} rotation={[0, 0.38, 0.1]} scale={0.15} opacity={0.44} lineOpacity={0.26} edge={ACTIVE_BLUE} threshold={12} />
-    <Model src={ASSETS.plant} position={[-2.4, 0, 0.4]} scale={1.0} opacity={0.36} lineOpacity={0.18} edge={MUTED_EDGE} threshold={16} />
-    <Model src={ASSETS.whiteboard} position={[2.2, 0, -1.5]} rotation={[0, -0.12, 0]} scale={1.8} opacity={0.36} lineOpacity={0.22} edge={SOFT_EDGE} threshold={14} />
+    <Model src={ASSETS.seatedYoungMan} position={[0.3, 0, 0.7]} rotation={[0, -Math.PI / 2, 0]} scale={1.8} tint="#314761" opacity={0.96} lineOpacity={0.64} edge={WHITE_EDGE} threshold={34} />
+    <Model src={ASSETS.phone} position={[-1.87, 1.1, 0.7]} rotation={[0, 0.38, 0.1]} scale={0.15} opacity={0.92} lineOpacity={0.76} edge={ACTIVE_BLUE} threshold={16} />
+    <Model src={ASSETS.coffeeCup} position={[-1.62, 1.1, 0.6]} scale={0.13} opacity={0.88} lineOpacity={0.7} edge={WHITE_EDGE} threshold={18} />
+    <Model src={ASSETS.assetKeyboard} position={[-1.07, 1.1, 0.55]} rotation={[0, -0.08, 0]} scale={0.35} opacity={0.72} lineOpacity={0.5} edge={WHITE_EDGE} threshold={24} />
+    <Model src={ASSETS.assetMonitor} position={[-0.3, 1.07, 0.38]} rotation={[0, Math.PI / 2, 0]} scale={0.78} opacity={0.56} lineOpacity={0.34} edge={ACTIVE_BLUE} threshold={22} />
+    <Model src={ASSETS.plant} position={[-2.4, 0, 0.4]} scale={1.0} opacity={0.44} lineOpacity={0.28} edge={SOFT_EDGE} threshold={22} />
+    <Model src={ASSETS.whiteboard} position={[2.2, 0, -1.5]} rotation={[0, -0.12, 0]} scale={1.8} opacity={0.34} lineOpacity={0.2} edge={SOFT_EDGE} threshold={22} />
   </group>
   if (kind === 'asset-late-work') return <group>
     <RoomShell windowSide="none" />
-    <LineBox position={[-1.65, 1.42, -2.28]} scale={[1.55, 1.0, 0.035]} color="#071421" edge={MUTED_EDGE} opacity={0.2} emissive={ACTIVE_BLUE} emissiveIntensity={0.012} />
-    <Model src={ASSETS.curtain} position={[-2.28, 0.66, -2.18]} rotation={[0, 0, 0]} scale={1.16} opacity={0.56} lineOpacity={0.86} edge={WHITE_EDGE} threshold={8} />
-    <Model src={ASSETS.curtain} position={[-1.02, 0.66, -2.18]} rotation={[0, Math.PI, 0]} scale={1.16} opacity={0.56} lineOpacity={0.86} edge={WHITE_EDGE} threshold={8} />
+    <Model src={ASSETS.subwayWindow} position={[-1.72, 0.72, -2.12]} rotation={[0, 0, 0]} scale={1.7} opacity={0.36} lineOpacity={0.18} edge={SOFT_EDGE} threshold={24} />
     <group position={[-0.48, 0, -0.18]} scale={1.08}>
-      <Model src={ASSETS.seatedYoungMan} position={[-0.52, 0, -0.04]} rotation={[0, -Math.PI / 2, 0]} scale={1.28} tint="#172231" opacity={0.6} lineOpacity={0.86} edge={WHITE_EDGE} threshold={8} />
-      <Model src={ASSETS.assetMonitor} position={[-1.08, 0.68, -0.28]} rotation={[0, Math.PI / 2, 0]} scale={0.46} opacity={0.58} lineOpacity={0.7} edge={ACTIVE_BLUE} threshold={8} />
-      <Model src={ASSETS.laptop} position={[-0.66, 0.72, 0.08]} rotation={[0, 1.18, 0]} scale={0.34} opacity={0.56} lineOpacity={0.68} edge={ACTIVE_BLUE} threshold={8} />
-      <Model src={ASSETS.assetKeyboard} position={[-0.86, 0.66, 0.02]} rotation={[0, Math.PI / 2, 0]} scale={0.24} opacity={0.5} lineOpacity={0.58} edge={WHITE_EDGE} threshold={8} />
-      <Model src={ASSETS.coffeeCup} position={[-0.98, 0.72, 0.2]} scale={0.15} opacity={0.52} lineOpacity={0.56} edge={WHITE_EDGE} threshold={8} />
-      <Model src={ASSETS.paper} position={[-0.55, 0.66, 0.18]} rotation={[0, 0.28, 0.08]} scale={0.17} opacity={0.52} lineOpacity={0.58} edge={WHITE_EDGE} threshold={8} />
-      <Model src={ASSETS.phone} position={[-0.42, 0.66, 0.04]} rotation={[0, -0.18, 0.1]} scale={0.085} opacity={0.5} lineOpacity={0.56} edge={ACTIVE_BLUE} threshold={8} />
+      <Model src={ASSETS.seatedYoungMan} position={[-0.52, 0, -0.04]} rotation={[0, -Math.PI / 2, 0]} scale={1.28} tint="#314761" opacity={0.92} lineOpacity={0.62} edge={WHITE_EDGE} threshold={34} />
+      <Model src={ASSETS.assetMonitor} position={[-1.08, 0.68, -0.28]} rotation={[0, Math.PI / 2, 0]} scale={0.46} opacity={0.54} lineOpacity={0.36} edge={ACTIVE_BLUE} threshold={24} />
+      <Model src={ASSETS.laptop} position={[-0.66, 0.72, 0.08]} rotation={[0, 1.18, 0]} scale={0.34} opacity={0.54} lineOpacity={0.36} edge={ACTIVE_BLUE} threshold={24} />
+      <Model src={ASSETS.assetKeyboard} position={[-0.86, 0.66, 0.02]} rotation={[0, Math.PI / 2, 0]} scale={0.24} opacity={0.48} lineOpacity={0.3} edge={SOFT_EDGE} threshold={26} />
+      <Model src={ASSETS.coffeeCup} position={[-0.98, 0.72, 0.2]} scale={0.15} opacity={0.5} lineOpacity={0.32} edge={WHITE_EDGE} threshold={22} />
+      <Model src={ASSETS.paper} position={[-0.55, 0.66, 0.18]} rotation={[0, 0.28, 0.08]} scale={0.17} opacity={0.42} lineOpacity={0.24} edge={SOFT_EDGE} threshold={24} />
+      <Model src={ASSETS.phone} position={[-0.42, 0.66, 0.04]} rotation={[0, -0.18, 0.1]} scale={0.085} opacity={0.5} lineOpacity={0.34} edge={ACTIVE_BLUE} threshold={22} />
     </group>
-    <Model src={ASSETS.floorBookshelf} position={[1.16, 0, -1.3]} rotation={[0, -0.03, 0]} scale={1.68} opacity={0.42} lineOpacity={0.54} edge={SOFT_EDGE} threshold={10} />
+    <Model src={ASSETS.floorBookshelf} position={[1.16, 0, -1.3]} rotation={[0, -0.03, 0]} scale={1.68} opacity={0.42} lineOpacity={0.42} edge={WHITE_EDGE} threshold={18} />
     <LineBox position={[1.18, 1.34, -1.05]} scale={[0.18, 0.09, 0.035]} color={ACTIVE_BLUE} edge={ACTIVE_BLUE} opacity={0.62} emissive={ACTIVE_BLUE} emissiveIntensity={0.2} />
-    <Model src={ASSETS.hotelBed} position={[1.72, 0.16, 0.58]} rotation={[0, -0.34, 0]} scale={2.55} opacity={0.5} lineOpacity={0.64} edge={WHITE_EDGE} threshold={10} />
-    <Model src={ASSETS.nightStand} position={[3.16, 0.18, -0.46]} rotation={[0, -0.12, 0]} scale={0.66} opacity={0.4} lineOpacity={0.36} edge={SOFT_EDGE} />
-    <Model src={ASSETS.nightstandLamp} position={[3.14, 0.52, -0.48]} scale={0.56} opacity={0.44} lineOpacity={0.48} edge={WARM_GLOW} threshold={10} />
+    <Model src={ASSETS.hotelBed} position={[1.72, 0.16, 0.58]} rotation={[0, -0.34, 0]} scale={2.55} opacity={0.52} lineOpacity={0.24} edge={SOFT_EDGE} threshold={28} />
+    <Model src={ASSETS.nightStand} position={[3.16, 0.18, -0.46]} rotation={[0, -0.12, 0]} scale={0.66} opacity={0.34} lineOpacity={0.22} edge={SOFT_EDGE} threshold={24} />
+    <Model src={ASSETS.nightstandLamp} position={[3.14, 0.52, -0.48]} scale={0.56} opacity={0.4} lineOpacity={0.3} edge={WARM_GLOW} threshold={24} />
     <LineBox position={[3.14, 0.96, -0.48]} scale={[0.2, 0.17, 0.2]} color="#ffd49a" edge={WARM_GLOW} opacity={0.38} emissive={WARM_GLOW} emissiveIntensity={0.25} />
-    <Model src={ASSETS.plant} position={[-2.92, 0, 0.72]} scale={0.92} opacity={0.5} lineOpacity={0.72} edge={WHITE_EDGE} threshold={10} />
+    <Model src={ASSETS.plant} position={[-2.92, 0, 0.72]} scale={0.92} opacity={0.42} lineOpacity={0.28} edge={SOFT_EDGE} threshold={24} />
   </group>
   if (kind === 'dorm-loft') return <group><RoomShell windowSide="left" />
-    <Model src={ASSETS.bunkBed} position={[-1.38, 0.86, 1.02]} rotation={[0, Math.PI, 0]} scale={1.72} tint="#1b2330" opacity={0.78} lineOpacity={1} edge="#ffffff" threshold={6} />
-    <Model src={ASSETS.bunkBed} position={[1.38, 0.86, 1.02]} rotation={[0, Math.PI, 0]} scale={1.72} tint="#1b2330" opacity={0.78} lineOpacity={1} edge="#ffffff" threshold={6} />
-    <Model src={ASSETS.bunkBed} position={[-1.38, 0.86, -1.18]} rotation={[0, 0, 0]} scale={1.72} tint="#1b2330" opacity={0.78} lineOpacity={1} edge="#ffffff" threshold={6} />
-    <Model src={ASSETS.bunkBed} position={[1.38, 0.86, -1.18]} rotation={[0, 0, 0]} scale={1.72} tint="#1b2330" opacity={0.78} lineOpacity={1} edge="#ffffff" threshold={6} />
+    <pointLight intensity={0.72} distance={2.8} position={[0.42, 1.26, 1.08]} color="#dcecff" />
+    <Model src={ASSETS.bunkBed} position={[-1.38, 0.86, 1.02]} rotation={[0, Math.PI, 0]} scale={1.72} tint="#26364b" opacity={0.7} lineOpacity={0.78} edge="#d7e0ec" threshold={8} />
+    <Model src={ASSETS.bunkBed} position={[1.38, 0.86, 1.02]} rotation={[0, Math.PI, 0]} scale={1.72} tint="#2c3d54" opacity={0.76} lineOpacity={0.9} edge="#e2eaf5" threshold={8} />
+    <Model src={ASSETS.bunkBed} position={[-1.38, 0.86, -1.18]} rotation={[0, 0, 0]} scale={1.72} tint="#1f2b3a" opacity={0.54} lineOpacity={0.58} edge={SOFT_EDGE} threshold={10} />
+    <Model src={ASSETS.bunkBed} position={[1.38, 0.86, -1.18]} rotation={[0, 0, 0]} scale={1.72} tint="#233041" opacity={0.6} lineOpacity={0.66} edge="#b8c2cf" threshold={10} />
+    <EvansBrooch time={0} />
+    <Model src={ASSETS.laptop} position={[0.1, 0.78, 0.42]} rotation={[0, 1.02, 0]} scale={0.24} opacity={0.72} lineOpacity={0.52} edge={ACTIVE_BLUE} threshold={18} />
+    <Model src={ASSETS.paper} position={[0.52, 0.76, 0.34]} rotation={[0, -0.2, 0.06]} scale={0.17} opacity={0.62} lineOpacity={0.42} edge={WHITE_EDGE} threshold={16} />
+    <Model src={ASSETS.paper} position={[0.62, 0.78, 0.44]} rotation={[0, 0.18, -0.03]} scale={0.16} opacity={0.56} lineOpacity={0.38} edge={SOFT_EDGE} threshold={18} />
+    <Model src={ASSETS.coffeeCup} position={[-0.18, 0.78, 0.54]} scale={0.13} opacity={0.68} lineOpacity={0.48} edge={WHITE_EDGE} threshold={18} />
+    <Model src={ASSETS.assetLamp} position={[0.76, 0.72, 0.12]} rotation={[0, -0.44, 0]} scale={0.42} opacity={0.48} lineOpacity={0.4} edge={SOFT_EDGE} threshold={18} />
   </group>
   if (kind === 'cozy-study') return <group><RoomShell windowSide="back" /><Model src={ASSETS.rug} position={[0.1, 0.03, 0.48]} rotation={[-Math.PI / 2, 0, 0]} scale={1.86} opacity={0.24} lineOpacity={0.2} edge={SOFT_EDGE} /><Model src={ASSETS.sofaSmall} position={[0.02, 0.18, 0.34]} scale={1.2} opacity={0.44} lineOpacity={0.34} edge={WHITE_EDGE} /><Model src={ASSETS.armchair} position={[-1.2, 0.16, 0.52]} rotation={[0, 0.34, 0]} scale={0.98} opacity={0.42} lineOpacity={0.32} edge={WHITE_EDGE} /><Model src={ASSETS.table} position={[0.66, 0.46, 1.02]} scale={0.74} opacity={0.38} lineOpacity={0.28} /><Model src={ASSETS.bookcase} position={[1.96, 0, -1.04]} scale={1.3} opacity={0.32} lineOpacity={0.26} edge={SOFT_EDGE} /><Model src={ASSETS.bookcase} position={[-2.02, 0, -1.06]} scale={1.12} opacity={0.28} lineOpacity={0.22} edge={SOFT_EDGE} /><Model src={ASSETS.lamp} position={[-1.88, 0, -0.22]} scale={1.08} opacity={0.34} lineOpacity={0.24} /><Model src={ASSETS.curtain} position={[1.48, 0.38, -2.12]} scale={1.28} opacity={0.3} lineOpacity={0.24} edge={SOFT_EDGE} /><Model src={ASSETS.curtain} position={[2.06, 0.38, -2.12]} scale={1.28} opacity={0.3} lineOpacity={0.24} edge={SOFT_EDGE} /></group>
   if (kind === 'asset-cozy-study') return <group>
     <RoomShell windowSide="none" />
-    <Model src={ASSETS.singleSofaChair} position={[0.0, 0.0, 0.22]} rotation={[0, 0, 0]} scale={1.22} opacity={0.48} lineOpacity={0.42} edge={WHITE_EDGE} threshold={10} />
-    <Model src={ASSETS.comfyChair} position={[-1.32, 0.0, 0.44]} rotation={[0, 0.62, 0]} scale={1.0} opacity={0.44} lineOpacity={0.82} edge={WHITE_EDGE} threshold={8} />
+    <Model src={ASSETS.singleSofaChair} position={[0.0, 0.0, 0.22]} rotation={[0, 0, 0]} scale={1.22} opacity={0.56} lineOpacity={0.34} edge={SOFT_EDGE} threshold={16} />
+    <Model src={ASSETS.comfyChair} position={[-1.32, 0.0, 0.44]} rotation={[0, 0.62, 0]} scale={1.0} tint="#48617f" opacity={0.9} lineOpacity={0.34} edge={SOFT_EDGE} threshold={18} />
     <Model src={ASSETS.table} position={[0.72, 0, 1.06]} scale={0.74} opacity={0.4} lineOpacity={0.68} edge={WHITE_EDGE} />
     <Model src={ASSETS.mug} position={[0.72, 0.44, 1.06]} scale={0.24} opacity={0.52} lineOpacity={0.56} edge={WHITE_EDGE} />
     <Model src={ASSETS.floorBookshelf} position={[1.86, 0, -1.02]} scale={1.68} opacity={0.38} lineOpacity={0.36} edge={SOFT_EDGE} threshold={11} />
-    <Model src={ASSETS.desktopBookshelf} position={[-1.88, 0, -1.12]} scale={1.05} opacity={0.37} lineOpacity={0.34} edge={SOFT_EDGE} threshold={11} />
+    <Model src={ASSETS.desktopBookshelf} position={[-1.88, 0, -1.12]} scale={1.05} opacity={0.24} lineOpacity={0.18} edge={MUTED_EDGE} threshold={18} />
     <group position={[-1.88, 1.32, -2.18]}>
       <LineBox position={[0, 0, 0]} scale={[0.78, 0.56, 0.025]} color="#121a24" edge={SOFT_EDGE} opacity={0.38} />
       <LineBox position={[0, 0, 0.018]} scale={[0.62, 0.4, 0.012]} color="#223a52" edge={MUTED_EDGE} opacity={0.34} emissive={ACTIVE_BLUE} emissiveIntensity={0.035} />
@@ -353,8 +372,8 @@ function Environment({ kind }: { kind: EnvironmentKind }) {
     <Model src={ASSETS.assetLamp} position={[-1.8, 0.02, -0.2]} scale={0.94} opacity={0.38} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} />
     <Model src={ASSETS.lamp} position={[1.72, 0, -0.56]} scale={1.0} opacity={0.36} lineOpacity={0.46} edge={WHITE_EDGE} />
     <LineBox position={[1.72, 0.88, -0.56]} scale={[0.2, 0.36, 0.2]} color="#ffd49a" edge={WARM_GLOW} opacity={0.3} emissive={WARM_GLOW} emissiveIntensity={0.22} />
-    <Model src={ASSETS.plant} position={[1.42, 0, 0.86]} scale={0.72} opacity={0.36} lineOpacity={0.48} edge={WHITE_EDGE} threshold={10} />
-    <Model src={ASSETS.plant} position={[-0.58, 0, -1.38]} scale={0.64} opacity={0.32} lineOpacity={0.46} edge={WHITE_EDGE} threshold={10} />
+    <Model src={ASSETS.plant} position={[1.42, 0, 0.86]} scale={0.72} opacity={0.24} lineOpacity={0.24} edge={SOFT_EDGE} threshold={16} />
+    <Model src={ASSETS.plant} position={[-0.58, 0, -1.38]} scale={0.64} opacity={0.22} lineOpacity={0.2} edge={MUTED_EDGE} threshold={18} />
   </group>
   if (kind === 'asset-generation-office') return <group><RoomShell windowSide="back" /><Model src={ASSETS.officeDesk} position={[0.18, 0.54, 0.02]} scale={1.52} opacity={0.46} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.seatedWoman} position={[0.02, 0.64, 0.52]} rotation={[0, Math.PI / 2, 0]} scale={1.28} tint="#172231" opacity={0.56} lineOpacity={0.7} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.assetMonitor} position={[0.32, 1.02, -0.42]} scale={0.52} opacity={0.48} lineOpacity={0.48} edge={ACTIVE_BLUE} threshold={10} /><Model src={ASSETS.assetKeyboard} position={[0.06, 0.96, -0.02]} scale={0.34} opacity={0.42} lineOpacity={0.44} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.phone} position={[0.62, 0.98, 0.2]} rotation={[0, -0.24, 0.1]} scale={0.2} opacity={0.5} lineOpacity={0.54} edge={ACTIVE_BLUE} threshold={8} /><Model src={ASSETS.coffeeCup} position={[-0.42, 0.98, 0.12]} scale={0.18} opacity={0.46} lineOpacity={0.42} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.plant} position={[1.72, 0, -0.96]} scale={0.72} opacity={0.34} lineOpacity={0.34} edge={SOFT_EDGE} threshold={12} /></group>
   if (kind === 'asset-anniversary-kitchen') return <group><RoomShell windowSide="left" /><Model src={ASSETS.kitchenIsland} position={[0.16, 0.68, 0.16]} scale={1.5} opacity={0.48} lineOpacity={0.52} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.fridge} position={[-1.92, 0, -1.1]} rotation={[0, 0.18, 0]} scale={1.22} opacity={0.42} lineOpacity={0.46} edge={SOFT_EDGE} threshold={12} /><Model src={ASSETS.phone} position={[0.52, 1.02, 0.16]} rotation={[0, -0.22, 0.1]} scale={0.2} opacity={0.54} lineOpacity={0.58} edge={ACTIVE_BLUE} threshold={8} /><Model src={ASSETS.coffeeCup} position={[-0.34, 1.0, 0.22]} scale={0.18} opacity={0.46} lineOpacity={0.42} edge={WHITE_EDGE} threshold={10} /><Model src={ASSETS.plant} position={[1.82, 0, -0.88]} scale={0.7} opacity={0.34} lineOpacity={0.34} edge={SOFT_EDGE} threshold={12} /></group>
@@ -416,6 +435,7 @@ function Environment({ kind }: { kind: EnvironmentKind }) {
 
 function SegmentTube({ start, end, width, opacity, color }: { start: THREE.Vector3; end: THREE.Vector3; width: number; opacity: number; color: string }) { const geometry = useMemo(() => new THREE.TubeGeometry(new THREE.LineCurve3(start, end), 18, width, 6, false), [end, start, width]); return <mesh geometry={geometry}><meshBasicMaterial color={color} transparent opacity={opacity} /></mesh> }
 function AnimatedRoute({ route, time }: { route: SceneRoute; time: number }) { const end = new THREE.Vector3(...route.to); const points = useMemo(() => [BROOCH, route.via ? new THREE.Vector3(...route.via) : BROOCH.clone().lerp(end, 0.5).add(new THREE.Vector3(0, 0.35, 0)), end], [end, route.via]); const progress = clamp01((time - route.start) / (route.end - route.start)); const visibility = smoothStep(time, route.start, route.start + 0.35) * (1 - smoothStep(time, route.holdUntil, route.holdUntil + 0.65)); const lengths = useMemo(() => { let total = 0; const segments = points.slice(0, -1).map((p, i) => { const l = p.distanceTo(points[i + 1]); total += l; return l }); return { segments, total } }, [points]); const movingPoint = getPathPoint(points, progress); if (visibility <= 0.01 || progress <= 0.01 || lengths.total <= 0.001) return null; let drawn = progress * lengths.total; return <group>{points.slice(0, -1).map((p, i) => { const l = lengths.segments[i]; const amount = clamp01(drawn / l); drawn -= l; if (amount <= 0) return null; return <SegmentTube key={i} start={p} end={p.clone().lerp(points[i + 1], amount)} width={route.width ?? 0.005} opacity={0.08 + visibility * 0.55} color={route.color ?? ACTIVE_BLUE} /> })}<mesh position={[movingPoint.x, movingPoint.y, movingPoint.z]}><sphereGeometry args={[(route.width ?? 0.005) * 3.8, 14, 10]} /><meshBasicMaterial color={route.color ?? ACTIVE_BLUE} transparent opacity={0.58 + pulse(time, 8.5) * 0.32} /></mesh></group> }
+function AnimatedRouteBetween({ from, to, via, start, end, holdUntil, color = ACTIVE_BLUE, width = 0.005, time }: { from: Vec3; to: Vec3; via?: Vec3; start: number; end: number; holdUntil: number; color?: string; width?: number; time: number }) { const startPoint = useMemo(() => new THREE.Vector3(...from), [from]); const endPoint = useMemo(() => new THREE.Vector3(...to), [to]); const points = useMemo(() => [startPoint, via ? new THREE.Vector3(...via) : startPoint.clone().lerp(endPoint, 0.5), endPoint], [endPoint, startPoint, via]); const progress = clamp01((time - start) / (end - start)); const visibility = smoothStep(time, start, start + 0.28) * (1 - smoothStep(time, holdUntil, holdUntil + 0.55)); const lengths = useMemo(() => { let total = 0; const segments = points.slice(0, -1).map((p, i) => { const l = p.distanceTo(points[i + 1]); total += l; return l }); return { segments, total } }, [points]); const movingPoint = getPathPoint(points, progress); if (visibility <= 0.01 || progress <= 0.01 || lengths.total <= 0.001) return null; let drawn = progress * lengths.total; return <group>{points.slice(0, -1).map((p, i) => { const l = lengths.segments[i]; const amount = clamp01(drawn / l); drawn -= l; if (amount <= 0) return null; return <SegmentTube key={i} start={p} end={p.clone().lerp(points[i + 1], amount)} width={width} opacity={0.08 + visibility * 0.55} color={color} /> })}<mesh position={[movingPoint.x, movingPoint.y, movingPoint.z]}><sphereGeometry args={[width * 3.8, 14, 10]} /><meshBasicMaterial color={color} transparent opacity={0.58 + pulse(time, 8.5) * 0.32} /></mesh></group> }
 
 const SCENE6_TOOL_CARDS = [
   { name: '邮件', body: '已扫描｜筛出 3 封 Q3 相关｜核心：老板昨晚转发的留存数据', position: [-1.18, 2.08, 0.02] as Vec3 },
@@ -596,15 +616,15 @@ function Scene6DispatchMotion({ time }: { time: number }) {
 function Scene7DialogueLayer({ time }: { time: number }) {
   const entries = [
     { start: 0.8, end: 5.2, kind: 'person', title: '李明', body: '这个方案明早要交,我得再改一稿……', position: [0.44, 1.54, 0.78] as Vec3 },
-    { start: 5.8, end: 13.0, kind: 'voice', title: 'Evans', body: '李明,我得告诉你一件事——你最近 90 天,凌晨 0 点后改的方案,第二天大改概率 84%。', position: [-0.58, 1.7, 0.72] as Vec3 },
-    { start: 18.0, end: 27.0, kind: 'voice', title: 'Evans', body: '剩下的 8% 是排版和数据图,明早 30 分钟就能搞定。现在睡,6:30 我叫你起来,9 点提交完全来得及。', position: [-0.58, 1.7, 0.72] as Vec3 },
-    { start: 32.0, end: 42.5, kind: 'voice', title: 'Evans', body: '或者你坚持改完,我也不拦你。但我想让你知道你自己的数据。', position: [-0.58, 1.7, 0.72] as Vec3 },
+    { start: 5.8, end: 8.6, kind: 'voice', title: 'Evans', body: '先看你自己的数据:凌晨后改稿,第二天大改概率很高。', position: [-0.72, 1.66, 0.78] as Vec3 },
+    { start: 17.0, end: 18.8, kind: 'voice', title: 'Evans', body: '剩下的是排版和数据图,明早 30 分钟就够。', position: [-0.72, 1.66, 0.78] as Vec3 },
+    { start: 31.0, end: 34.0, kind: 'voice', title: 'Evans', body: '现在我把环境切到睡眠模式,6:30 再叫你。', position: [-0.72, 1.66, 0.78] as Vec3 },
   ]
   return <>{entries.map((entry) => {
     const opacity = visibilityBetween(time, entry.start, entry.end, 0.45)
     if (opacity <= 0.01) return null
-    return <Html key={entry.start} position={entry.position} center distanceFactor={7.7} transform sprite occlude={false} zIndexRange={[38, 0]}>
-      <div className={`object-label object-label--${entry.kind} scripted-dialog`} style={{ opacity, transform: `translateY(${8 - opacity * 8}px) scale(${0.94 + opacity * 0.06})` }}>
+    return <Html key={entry.start} position={entry.position} center distanceFactor={6.3} transform sprite occlude={false} zIndexRange={[38, 0]}>
+      <div className={`object-label object-label--${entry.kind} scripted-dialog late-work-dialog`} style={{ opacity, transform: `translateY(${8 - opacity * 8}px) scale(${0.94 + opacity * 0.06})` }}>
         <strong>{entry.title}</strong>
         <span>{entry.body}</span>
       </div>
@@ -613,10 +633,10 @@ function Scene7DialogueLayer({ time }: { time: number }) {
 }
 
 function Scene7DataCard({ time }: { time: number }) {
-  const opacity = smoothStep(time, 8.0, 9.2) * (time < 46 ? 1 : 1 - smoothStep(time, 46, 49))
+  const opacity = smoothStep(time, 8.4, 9.5) * (time < 16.4 ? 1 : 1 - smoothStep(time, 16.4, 17.6))
   if (opacity <= 0.01) return null
-  return <Html position={[-0.24, 1.72, 0.18]} center distanceFactor={8.3} transform sprite occlude={false} zIndexRange={[42, 0]}>
-    <div className="late-work-data-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.58 + opacity * 0.04})` }}>
+  return <Html position={[0.66, 1.48, 0.62]} center distanceFactor={6.2} transform sprite occlude={false} zIndexRange={[42, 0]}>
+    <div className="late-work-data-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.72 + opacity * 0.04})` }}>
       <div className="late-work-card-topbar"><span>你的最近 90 天产出数据</span><i>Personal Baseline</i></div>
       <section className="late-work-metric-list">
         <p><b>凌晨 0 点后产出</b><strong>第二天返工率 78%</strong></p>
@@ -632,10 +652,10 @@ function Scene7DataCard({ time }: { time: number }) {
 }
 
 function Scene7ArrangeCard({ time }: { time: number }) {
-  const opacity = smoothStep(time, 18.0, 19.2) * (time < 47 ? 1 : 1 - smoothStep(time, 47, 50))
+  const opacity = smoothStep(time, 18.2, 19.2) * (time < 29.0 ? 1 : 1 - smoothStep(time, 29.0, 30.4))
   if (opacity <= 0.01) return null
-  return <Html position={[0.72, 1.58, 0.24]} center distanceFactor={8.3} transform sprite occlude={false} zIndexRange={[40, 0]}>
-    <div className="late-work-arrange-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.6 + opacity * 0.04})` }}>
+  return <Html position={[0.72, 1.38, 0.66]} center distanceFactor={6.2} transform sprite occlude={false} zIndexRange={[40, 0]}>
+    <div className="late-work-arrange-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.72 + opacity * 0.04})` }}>
       <div className="late-work-card-topbar"><span>已为你安排好</span><i>Auto Scheduled</i></div>
       <div className="late-work-action-row"><b>闹钟与日程</b><span>06:30 柔和铃声 · 07:00-07:30 完成最后 8%</span></div>
       <div className="late-work-action-row"><b>邮件定时发送</b><span>Q3 增长讨论 · 终稿 · 明日 09:00 · 待早起确认</span></div>
@@ -645,16 +665,16 @@ function Scene7ArrangeCard({ time }: { time: number }) {
 }
 
 function Scene7DeviceStatus({ time }: { time: number }) {
-  const lampOpacity = visibilityBetween(time, 22.5, 38.0, 0.45)
-  const sleepOpacity = visibilityBetween(time, 25.0, 41.0, 0.45)
+  const lampOpacity = visibilityBetween(time, 30.4, 36.4, 0.45)
+  const sleepOpacity = visibilityBetween(time, 36.6, 46.0, 0.55)
   return <>
-    {lampOpacity > 0.01 && <Html position={[1.02, 1.1, -0.48]} center distanceFactor={7.2} transform sprite occlude={false} zIndexRange={[35, 0]}>
-      <div className="object-label object-label--action object-label--right" style={{ opacity: lampOpacity }}>
+    {lampOpacity > 0.01 && <Html position={[1.08, 1.14, -0.36]} center distanceFactor={6.4} transform sprite occlude={false} zIndexRange={[35, 0]}>
+      <div className="object-label object-label--action object-label--right late-work-device-note" style={{ opacity: lampOpacity }}>
         <strong>智能台灯</strong>
         冷白 5500K -&gt; 暖橙 2700K | 亮度 80% -&gt; 30%
       </div>
     </Html>}
-    {sleepOpacity > 0.01 && <Html position={[0.38, 1.88, -0.02]} center distanceFactor={7.6} transform sprite occlude={false} zIndexRange={[34, 0]}>
+    {sleepOpacity > 0.01 && <Html position={[0.36, 1.66, 0.52]} center distanceFactor={6.6} transform sprite occlude={false} zIndexRange={[34, 0]}>
       <div className="late-work-sleep-pill" style={{ opacity: sleepOpacity, transform: `translateY(${4 - sleepOpacity * 4}px) scale(${0.9 + sleepOpacity * 0.05})` }}>
         <strong>Slack 睡眠模式</strong>
         <span>已开启 · 持续至明日 08:00</span>
@@ -665,14 +685,8 @@ function Scene7DeviceStatus({ time }: { time: number }) {
 
 function Scene7LampWarmth({ time }: { time: number }) {
   const warm = smoothStep(time, 22, 31)
-  const glow = 0.08 + warm * (0.58 + pulse(time, 1.4) * 0.08)
   return <group>
     <pointLight intensity={warm * 2.2} distance={2.2} position={[1.32, 1.18, -0.62]} color={WARM_GLOW} />
-    {warm > 0.01 && <mesh position={[1.15, 0.92, -0.38]} rotation={[-0.35, 0, 0]} scale={[0.52, 0.04, 0.34]}>
-      <sphereGeometry args={[1, 32, 16]} />
-      <meshBasicMaterial color={WARM_GLOW} transparent opacity={glow} depthWrite={false} />
-    </mesh>}
-    {[-1.95, -1.65, -1.35].map((x, index) => <LineBox key={`scene7-city-${index}`} position={[x, 1.18 + (index % 2) * 0.18, -2.2]} scale={[0.08, 0.18, 0.018]} color="#142033" edge={ACTIVE_BLUE} opacity={0.2} emissive={ACTIVE_BLUE} emissiveIntensity={0.035 + pulse(time + index, 0.8) * 0.02} />)}
   </group>
 }
 
@@ -688,11 +702,10 @@ function Scene7LateWorkMotion({ time }: { time: number }) {
   return <group>
     <Scene7LampWarmth time={time} />
     <EvansBrooch time={time} warm={time > 38} />
-    <AnimatedRoute route={{ to: [-0.24, 1.72, 0.18], via: [-0.38, 1.5, 0.32], start: 7.2, end: 9.0, holdUntil: 16.0, color: MAIN_BLUE, width: 0.007 }} time={time} />
-    <AnimatedRoute route={{ to: [0.62, 1.68, 0.24], via: [0.3, 1.58, 0.3], start: 16.0, end: 18.0, holdUntil: 31.0, color: MAIN_BLUE, width: 0.007 }} time={time} />
-    <AnimatedRoute route={{ to: [0.82, 1.48, 0.26], via: [0.48, 1.42, 0.42], start: 18.2, end: 20.2, holdUntil: 32.0, color: MAIN_BLUE, width: 0.007 }} time={time} />
-    <AnimatedRoute route={{ to: [1.02, 1.1, -0.48], via: [0.62, 1.34, -0.16], start: 21.5, end: 24.0, holdUntil: 37.0, color: ACTIVE_BLUE, width: 0.005 }} time={time} />
-    <AnimatedRoute route={{ to: [0.38, 1.88, -0.02], via: [0.2, 1.64, 0.12], start: 23.6, end: 25.6, holdUntil: 38.0, color: ACTIVE_BLUE, width: 0.005 }} time={time} />
+    <AnimatedRoute route={{ to: [0.66, 1.48, 0.62], via: [-0.1, 1.42, 0.58], start: 7.2, end: 9.0, holdUntil: 16.2, color: MAIN_BLUE, width: 0.007 }} time={time} />
+    <AnimatedRoute route={{ to: [0.72, 1.38, 0.66], via: [0.28, 1.4, 0.62], start: 16.2, end: 18.2, holdUntil: 29.4, color: MAIN_BLUE, width: 0.007 }} time={time} />
+    <AnimatedRoute route={{ to: [1.08, 1.14, -0.36], via: [0.74, 1.32, 0.02], start: 29.8, end: 31.4, holdUntil: 35.8, color: ACTIVE_BLUE, width: 0.005 }} time={time} />
+    <AnimatedRoute route={{ to: [0.36, 1.66, 0.52], via: [0.7, 1.52, 0.34], start: 35.8, end: 37.4, holdUntil: 45.0, color: ACTIVE_BLUE, width: 0.005 }} time={time} />
     <Scene7DataCard time={time} />
     <Scene7ArrangeCard time={time} />
     <Scene7DeviceStatus time={time} />
@@ -701,9 +714,255 @@ function Scene7LateWorkMotion({ time }: { time: number }) {
   </group>
 }
 
+const SCENE8_SCAN_CARDS = [
+  { name: '邮件', body: '89 封 → 已分类', position: [-0.78, 1.74, 0.64] as Vec3 },
+  { name: '微信', body: '34 条 → 已分类', position: [-0.26, 1.9, 0.62] as Vec3 },
+  { name: '钉钉', body: '12 条 → 已处理', position: [0.26, 1.9, 0.62] as Vec3 },
+  { name: '导师语音', body: '3 条 → 已转文字', position: [0.78, 1.74, 0.64] as Vec3 },
+]
+
+const SCENE8_MAIN_CARD: Vec3 = [0.12, 1.52, 0.74]
+const SCENE8_AUTO_CARD: Vec3 = [0.96, 1.02, 0.82]
+const SCENE8_CALENDAR_CARD: Vec3 = [-0.86, 1.02, 0.82]
+
+function Scene8DialogueLayer({ time }: { time: number }) {
+  const entries = [
+    { start: 0.8, end: 4.0, kind: 'person', title: '林涵', body: '我看看今天有什么……天哪,89 封未读邮件,34 个微信,导师还发了三条语音。', position: [0.2, 1.52, 0.84] as Vec3 },
+    { start: 4.3, end: 7.0, kind: 'voice', title: 'Evans', body: '林涵,你今天看着信息多,其实需要你亲自处理的只有 5 件事。', position: [-0.36, 1.62, 0.84] as Vec3 },
+    { start: 31.0, end: 35.0, kind: 'voice', title: 'Evans', body: '剩下的事都不用你今天处理。你先喝杯水,然后我们开始第三章好吗?', position: [-0.36, 1.62, 0.84] as Vec3 },
+  ]
+  return <>{entries.map((entry) => {
+    const opacity = visibilityBetween(time, entry.start, entry.end, 0.45)
+    if (opacity <= 0.01) return null
+    return <Html key={entry.start} position={entry.position} center distanceFactor={4.8} transform sprite occlude={false} zIndexRange={[39, 0]}>
+      <div className={`object-label object-label--${entry.kind} open-office-dialog info-filter-dialog`} style={{ opacity, transform: `translateY(${8 - opacity * 8}px) scale(${0.94 + opacity * 0.06})` }}>
+        <strong>{entry.title}</strong>
+        <span>{entry.body}</span>
+      </div>
+    </Html>
+  })}</>
+}
+
+function Scene8ScanCard({ name, body, position, time, index }: { name: string; body: string; position: Vec3; time: number; index: number }) {
+  const appear = 7.2 + index * 0.12
+  const opacity = visibilityBetween(time, appear, 10.2, 0.36)
+  const gather = smoothStep(time, 9.0, 10.2)
+  if (opacity <= 0.01) return null
+  return <Html position={position} center distanceFactor={4.2} transform sprite occlude={false} zIndexRange={[34, 0]}>
+    <div className="object-label object-label--action open-office-tool-card info-filter-scan-card" style={{
+      opacity,
+      transform: `translate3d(0, ${5 - opacity * 5 + gather * 10}px, 0) scale(${0.88 + opacity * 0.12 - gather * 0.1})`,
+    }}>
+      <strong>{name}</strong>
+      <span>{body}</span>
+    </div>
+  </Html>
+}
+
+function Scene8MainTaskCard({ time }: { time: number }) {
+  const opacity = smoothStep(time, 11.4, 12.4) * (time < 22.0 ? 1 : 1 - smoothStep(time, 22.0, 23.2))
+  if (opacity <= 0.01) return null
+  return <Html position={SCENE8_MAIN_CARD} center distanceFactor={5.0} transform sprite occlude={false} zIndexRange={[43, 0]}>
+    <div className="info-filter-main-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.66 + opacity * 0.05})` }}>
+      <div className="info-filter-card-topbar"><span>今天真正需要你处理的: 5 件事</span><i>Evans Focus List</i></div>
+      <section>
+        <article><b>① 导师论文意见</b><span>第二章补 2 个学者: Ricoeur + McAdams</span><span>第三章方法论改完: 访谈样本数量论证</span><em>提纲方向已被认可</em></article>
+        <article><b>② 答辩流程通知</b><span>已加进日历: 6 月 12 日 上午 9:00</span></article>
+        <article><b>③ 师姐的 2 篇文献</b><span>已存入 Zotero · 标签“叙事认同”</span></article>
+        <article><b>④ 实习公司周报</b><span>已用上周数据填好 60%</span><em>待补: 本周个人进度 + 反思</em></article>
+        <article><b>⑤ 室友聚餐</b><span>我先回了: “晚上跟你商量”</span></article>
+      </section>
+    </div>
+  </Html>
+}
+
+function Scene8AutoCard({ time }: { time: number }) {
+  const opacity = visibilityBetween(time, 24.0, 29.2, 0.55)
+  if (opacity <= 0.01) return null
+  return <Html position={SCENE8_AUTO_CARD} center distanceFactor={4.8} transform sprite occlude={false} zIndexRange={[37, 0]}>
+    <div className="info-filter-side-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.78 + opacity * 0.05})` }}>
+      <strong>已自动处理</strong>
+      <span>营销邮件 75 封 · 已归档</span>
+      <span>重复公众号 8 个 · 已退订</span>
+      <span>群闲聊 22 条 · 已静默</span>
+      <em>24 小时后再扫描一次</em>
+    </div>
+  </Html>
+}
+
+function Scene8CalendarCard({ time }: { time: number }) {
+  const opacity = visibilityBetween(time, 30.0, 38.0, 0.55)
+  if (opacity <= 0.01) return null
+  return <Html position={SCENE8_CALENDAR_CARD} center distanceFactor={4.8} transform sprite occlude={false} zIndexRange={[36, 0]}>
+    <div className="info-filter-calendar-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.78 + opacity * 0.05})` }}>
+      <strong>日历深度工作锁定</strong>
+      <div className="info-filter-calendar-slot"><b>周三</b><span>09:00-12:00</span></div>
+      <p>第三章方法论修改 · 深度工作</p>
+      <em>期间静默所有 IM / 仅导师消息可达</em>
+    </div>
+  </Html>
+}
+
+function Scene8InfoFilterMotion({ time }: { time: number }) {
+  return <group>
+    {SCENE8_SCAN_CARDS.map((card, i) => (
+      <AnimatedRoute
+        key={`scene8-scan-${card.name}`}
+        route={{ to: card.position, via: [-0.28 + i * 0.18, 1.64 + i * 0.08, 0.6], start: 6.8 + i * 0.12, end: 8.2 + i * 0.12, holdUntil: 10.0, color: ACTIVE_BLUE, width: 0.0042 }}
+        time={time}
+      />
+    ))}
+    {SCENE8_SCAN_CARDS.map((card, i) => (
+      <AnimatedRoute
+        key={`scene8-converge-${card.name}`}
+        route={{ to: SCENE8_MAIN_CARD, via: [-0.5 + i * 0.34, 1.96, 0.7], start: 10.0 + i * 0.16, end: 11.4 + i * 0.16, holdUntil: 13.0, color: MAIN_BLUE, width: 0.0058 }}
+        time={time}
+      />
+    ))}
+    <AnimatedRoute route={{ to: SCENE8_AUTO_CARD, via: [0.62, 1.34, 0.72], start: 23.2, end: 24.8, holdUntil: 28.6, color: ACTIVE_BLUE, width: 0.0048 }} time={time} />
+    <AnimatedRoute route={{ to: SCENE8_CALENDAR_CARD, via: [-0.58, 1.3, 0.72], start: 29.4, end: 31.0, holdUntil: 37.0, color: MAIN_BLUE, width: 0.0068 }} time={time} />
+    {SCENE8_SCAN_CARDS.map((card, index) => <Scene8ScanCard key={card.name} {...card} time={time} index={index} />)}
+    <Scene8MainTaskCard time={time} />
+    <Scene8AutoCard time={time} />
+    <Scene8CalendarCard time={time} />
+    <Scene8DialogueLayer time={time} />
+  </group>
+}
+
+const SCENE9_PROFILE_CARD: Vec3 = [-0.86, 1.92, 0.62]
+const SCENE9_RELATION_CARD: Vec3 = [0.88, 1.92, 0.62]
+const SCENE9_SIMULATOR_CARD: Vec3 = [0.08, 1.86, 0.74]
+const SCENE9_HISTORY_CARD: Vec3 = [0.08, 0.78, 0.92]
+
+function Scene9DialogueLayer({ time }: { time: number }) {
+  const entries = [
+    { start: 0.8, end: 5.0, kind: 'person', title: '李明', body: 'Evans,我收到那家创业公司的 offer 了,薪水高 40%,但我有点犹豫……我不知道该不该走。', position: [1.0, 1.46, 0.88] as Vec3 },
+    { start: 5.4, end: 9.0, kind: 'voice', title: 'Evans', body: '我陪你过了 213 天,你不需要一个答案,你需要把脑里的东西摊开来看。', position: [-1.0, 1.58, 0.88] as Vec3 },
+    { start: 25.6, end: 30.0, kind: 'voice', title: 'Evans', body: '我注意到一件事——你过去 3 次跳槽,2 次后悔。后悔原因不是薪资,是你低估了高强度工作对你和小雨的影响。', position: [-1.0, 1.58, 0.88] as Vec3 },
+    { start: 39.2, end: 43.2, kind: 'voice', title: 'Evans', body: '但这只是数据,不是命运。你现在跟两年前不一样了。你想要哪一个未来,最后还得你自己说。', position: [-1.0, 1.58, 0.88] as Vec3 },
+  ]
+  return <>{entries.map((entry) => {
+    const opacity = visibilityBetween(time, entry.start, entry.end, 0.45)
+    if (opacity <= 0.01) return null
+    return <Html key={entry.start} position={entry.position} center distanceFactor={5.2} transform sprite occlude={false} zIndexRange={[39, 0]}>
+      <div className={`object-label object-label--${entry.kind} decision-dialog`} style={{ opacity, transform: `translateY(${8 - opacity * 8}px) scale(${0.94 + opacity * 0.06})` }}>
+        <strong>{entry.title}</strong>
+        <span>{entry.body}</span>
+      </div>
+    </Html>
+  })}</>
+}
+
+function Scene9ProfileCard({ time }: { time: number }) {
+  const opacity = visibilityBetween(time, 9.6, 13.4, 0.45)
+  if (opacity <= 0.01) return null
+  return <Html position={SCENE9_PROFILE_CARD} center distanceFactor={5.0} transform sprite occlude={false} zIndexRange={[36, 0]}>
+    <div className="decision-profile-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.78 + opacity * 0.06})` }}>
+      <strong>长期画像档案</strong>
+      <span>213 天陪伴记录</span>
+      <span>高压任务后恢复慢</span>
+      <span>亲密关系稳定性敏感</span>
+      <em>决策偏好: 自主感 &gt; 薪资峰值</em>
+    </div>
+  </Html>
+}
+
+function Scene9RelationCard({ time }: { time: number }) {
+  const opacity = visibilityBetween(time, 14.0, 18.0, 0.45)
+  if (opacity <= 0.01) return null
+  const nodes = [
+    ['小雨', '希望稳定 · 上周提到结婚', 'warm'],
+    ['父母', '反对折腾', 'warm'],
+    ['现任领导', '本周许诺加薪 20%', 'cool'],
+    ['现团队', '磨合度高', 'cool'],
+  ]
+  return <Html position={SCENE9_RELATION_CARD} center distanceFactor={5.0} transform sprite occlude={false} zIndexRange={[36, 0]}>
+    <div className="decision-relation-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.78 + opacity * 0.06})` }}>
+      <strong>关系网络影响</strong>
+      <div className="decision-network-core">李明</div>
+      {nodes.map(([name, body, tone]) => (
+        <p key={name} className={`decision-network-row decision-network-row--${tone}`}>
+          <b>{name}</b><span>{body}</span><i />
+        </p>
+      ))}
+    </div>
+  </Html>
+}
+
+function Scene9SimulatorCard({ time }: { time: number }) {
+  const opacity = smoothStep(time, 19.4, 20.3) * (time < 24.4 ? 1 : 1 - smoothStep(time, 24.4, 25.2))
+  if (opacity <= 0.01) return null
+  return <Html position={SCENE9_SIMULATOR_CARD} center distanceFactor={5.2} transform sprite occlude={false} zIndexRange={[43, 0]}>
+    <div className="decision-simulator-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.66 + opacity * 0.05})` }}>
+      <div className="decision-card-topbar"><span>平行人生模拟器</span><i>6 个月推演</i></div>
+      <section>
+        <article>
+          <b>路径 A · 接受 offer</b>
+          <span>财务 +18 万/年</span>
+          <span>焦虑指数 ↑↑↑</span>
+          <span>与小雨 -60%(基线)</span>
+          <span>倦怠概率 70%</span>
+          <span>失眠概率 ↑↑</span>
+          <em>预测满意度: 58 / 100</em>
+        </article>
+        <article>
+          <b>路径 B · 留下加薪</b>
+          <span>财务 +6 万/年</span>
+          <span>焦虑指数 →</span>
+          <span>与小雨 →</span>
+          <span>倦怠概率 25%</span>
+          <span>失眠概率 →</span>
+          <em>预测满意度: 76 / 100</em>
+        </article>
+      </section>
+    </div>
+  </Html>
+}
+
+function Scene9HistoryCard({ time }: { time: number }) {
+  const opacity = visibilityBetween(time, 30.6, 34.4, 0.45)
+  if (opacity <= 0.01) return null
+  return <Html position={SCENE9_HISTORY_CARD} center distanceFactor={5.2} transform sprite occlude={false} zIndexRange={[38, 0]}>
+    <div className="decision-history-card" style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.75 + opacity * 0.05})` }}>
+      <strong>你过去 3 次跳槽的真实数据</strong>
+      <span>2021 → AA 公司: 3 个月后抱怨 14 次</span>
+      <span>2023 → BB 公司: 2 个月后失眠记录 +200%</span>
+      <span>2024 → 选择留下: 整体满意度提升</span>
+      <em>共同模式: 后悔原因不是薪资,是你低估了高强度工作对亲密关系的影响</em>
+    </div>
+  </Html>
+}
+
+function Scene9OwnershipCard({ time }: { time: number }) {
+  const opacity = visibilityBetween(time, 35.0, 38.4, 0.45)
+  if (opacity <= 0.01) return null
+  return <Html position={[0.08, 0.68, 0.92]} center distanceFactor={5.2} transform sprite occlude={false} zIndexRange={[37, 0]}>
+    <div className="decision-ownership-card" style={{ opacity, transform: `translateY(${4 - opacity * 4}px) scale(${0.82 + opacity * 0.05})` }}>
+      决定权 100% 在你 · Evans 不提交建议
+    </div>
+  </Html>
+}
+
+function Scene9DecisionMotion({ time }: { time: number }) {
+  return <group>
+    <EvansBrooch time={time} />
+    <AnimatedRoute route={{ to: SCENE9_PROFILE_CARD, via: [-0.42, 1.58, 0.54], start: 9.0, end: 9.9, holdUntil: 12.8, color: ACTIVE_BLUE, width: 0.0048 }} time={time} />
+    <AnimatedRoute route={{ to: SCENE9_RELATION_CARD, via: [0.42, 1.58, 0.54], start: 13.4, end: 14.3, holdUntil: 17.4, color: ACTIVE_BLUE, width: 0.0048 }} time={time} />
+    <AnimatedRouteBetween from={SCENE9_PROFILE_CARD} to={SCENE9_SIMULATOR_CARD} start={18.2} end={19.3} holdUntil={20.6} color={MAIN_BLUE} width={0.0062} time={time} />
+    <AnimatedRouteBetween from={SCENE9_RELATION_CARD} to={SCENE9_SIMULATOR_CARD} start={18.4} end={19.5} holdUntil={20.6} color={MAIN_BLUE} width={0.0062} time={time} />
+    <AnimatedRoute route={{ to: SCENE9_HISTORY_CARD, via: [0.02, 1.08, 0.78], start: 30.0, end: 30.8, holdUntil: 33.8, color: ACTIVE_BLUE, width: 0.0048 }} time={time} />
+    <Scene9DialogueLayer time={time} />
+    <Scene9ProfileCard time={time} />
+    <Scene9RelationCard time={time} />
+    <Scene9SimulatorCard time={time} />
+    <Scene9HistoryCard time={time} />
+    <Scene9OwnershipCard time={time} />
+  </group>
+}
+
 function Panels({ panels, time }: { panels: ScenePanel[]; time: number }) { return <>{panels.map(panel => { const opacity = visibilityBetween(time, panel.start, panel.end); if (opacity <= 0.01) return null; return <Html key={panel.id} position={panel.position} center distanceFactor={panel.variant === 'main' ? 8.8 : 8.2} transform sprite occlude={false} zIndexRange={[panel.variant === 'main' ? 42 : 38, 0]}><div className={`scripted-panel scripted-panel--${panel.variant ?? 'side'}`} style={{ opacity, transform: `translateY(${5 - opacity * 5}px) scale(${0.76 + opacity * 0.07})` }}><div className="scripted-panel-topbar"><span>{panel.title}</span>{panel.subtitle && <i>{panel.subtitle}</i>}</div>{panel.lines.map((line, index) => <p key={`${panel.id}-${index}`}>{line}</p>)}</div></Html> })}</> }
 function Dialogues({ dialogues, time }: { dialogues: SceneDialogue[]; time: number }) { return <>{dialogues.map(entry => { const opacity = visibilityBetween(time, entry.start, entry.end); if (opacity <= 0.01) return null; return <Html key={`${entry.title}-${entry.start}`} position={entry.position ?? [-0.46, entry.kind === 'person' ? 1.58 : 1.72, 0.86]} center distanceFactor={7.8} transform sprite occlude={false} zIndexRange={[39, 0]}><div className={`object-label object-label--${entry.kind} scripted-dialog`} style={{ opacity, transform: `translateY(${8 - opacity * 8}px) scale(${0.94 + opacity * 0.06})` }}><strong>{entry.title}</strong><span>{entry.body}</span></div></Html> })}</> }
-function SceneContent({ config, time }: { config: ScriptedSceneConfig; time: number }) { return <><Environment kind={config.environment} />{config.showPerson !== false && <Person time={time} pose={config.pose} broochMode={config.broochMode} position={config.personPosition} rotation={config.personRotation} scale={config.personScale} customSrc={config.personSrc} />}{!config.disableEnvironmentMotion && config.environment === 'asset-scene6' && <><EvansBrooch time={time} warm={time > 28} /><Scene6DispatchMotion time={time} /></>}{!config.disableEnvironmentMotion && config.environment === 'asset-late-work' && <Scene7LateWorkMotion time={time} />}<group>{config.routes.map((route, index) => <AnimatedRoute key={index} route={route} time={time} />)}<Panels panels={config.panels} time={time} /><Dialogues dialogues={config.dialogues} time={time} /></group></> }
+function SceneContent({ config, time }: { config: ScriptedSceneConfig; time: number }) { return <><Environment kind={config.environment} />{config.showPerson !== false && <Person time={time} pose={config.pose} broochMode={config.broochMode} position={config.personPosition} rotation={config.personRotation} scale={config.personScale} customSrc={config.personSrc} />}{!config.disableEnvironmentMotion && config.environment === 'asset-scene6' && <><EvansBrooch time={time} warm={time > 28} /><Scene6DispatchMotion time={time} /></>}{!config.disableEnvironmentMotion && config.environment === 'asset-late-work' && <Scene7LateWorkMotion time={time} />}{!config.disableEnvironmentMotion && config.environment === 'dorm-loft' && <Scene8InfoFilterMotion time={time} />}{!config.disableEnvironmentMotion && config.environment === 'asset-cozy-study' && <Scene9DecisionMotion time={time} />}<group>{config.routes.map((route, index) => <AnimatedRoute key={index} route={route} time={time} />)}<Panels panels={config.panels} time={time} /><Dialogues dialogues={config.dialogues} time={time} /></group></> }
 function AnimatedScene({ config, time }: { config: ScriptedSceneConfig; time: number }) {
   const firstFrame = useMemo(
     () => config.camera?.[0] ?? { position: new THREE.Vector3(2.55, 2.1, 3.1), look: new THREE.Vector3(0, 1.16, 0.18), zoom: 122, at: 0 },
@@ -748,5 +1007,5 @@ export function ScriptedSceneExperience({ config }: { config: ScriptedSceneConfi
     config.showPerson ?? true,
     config.enableOrbitControls ?? false,
   ].join('|')
-  return <section className="interior-shell" aria-label={config.ariaLabel}><Canvas key={canvasKey} shadows dpr={[1, 2]}><Suspense fallback={null}><AnimatedScene config={config} time={time} /></Suspense></Canvas></section>
+  return <section className="interior-shell" aria-label={config.ariaLabel}><Canvas key={canvasKey} shadows dpr={[1, 1.5]} gl={{ powerPreference: 'high-performance', antialias: true }}><Suspense fallback={null}><AnimatedScene config={config} time={time} /></Suspense></Canvas></section>
 }
